@@ -490,7 +490,30 @@ function FreelancerContractPreview({ contract }: { contract: FreelancerContractD
       </p>
 
       <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '24px', marginBottom: '12px' }}>
-        제8조 (기타)
+        제8조 (계약의 성격)
+      </h2>
+      <p style={{ lineHeight: '1.8', marginBottom: '16px' }}>
+        ① 본 계약은 민법상 도급계약으로서, 을은 독립된 사업자로서 자신의 책임 하에 업무를 수행한다.<br />
+        ② 을은 갑의 지휘·감독을 받지 아니하며, 업무 수행의 시간·장소·방법을 자유롭게 결정한다.<br />
+        ③ 갑과 을 사이에는 근로기준법상 근로관계가 성립하지 아니한다.
+      </p>
+
+      <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '24px', marginBottom: '12px' }}>
+        제9조 (손해배상)
+      </h2>
+      <p style={{ lineHeight: '1.8', marginBottom: '16px' }}>
+        갑 또는 을이 본 계약을 위반하여 상대방에게 손해를 입힌 경우, 그 손해를 배상할 책임이 있다.
+      </p>
+
+      <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '24px', marginBottom: '12px' }}>
+        제10조 (분쟁해결)
+      </h2>
+      <p style={{ lineHeight: '1.8', marginBottom: '16px' }}>
+        본 계약과 관련하여 분쟁이 발생한 경우, 갑의 주소지를 관할하는 법원을 제1심 관할법원으로 한다.
+      </p>
+
+      <h2 style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '24px', marginBottom: '12px' }}>
+        제11조 (기타)
       </h2>
       <p style={{ lineHeight: '1.8', marginBottom: '16px' }}>
         본 계약에 명시되지 않은 사항은 관계 법령 및 상관례에 따르며, 
