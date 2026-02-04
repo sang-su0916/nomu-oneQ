@@ -7,12 +7,125 @@ export interface CompanyInfo {
   phone: string;          // 전화번호
 }
 
-// 근로자 정보
+// 근로자 기본 정보
 export interface EmployeeInfo {
   name: string;           // 성명
   residentNumber: string; // 주민등록번호
   address: string;        // 주소
   phone: string;          // 연락처
+}
+
+// ============================================
+// 직원 관리 시스템
+// ============================================
+
+// 직원 고용 유형
+export type EmploymentType = 'fulltime' | 'parttime' | 'freelancer';
+
+// 직원 상태
+export type EmployeeStatus = 'active' | 'resigned' | 'pending';
+
+// 등록된 직원 (연동 시스템용)
+export interface Employee {
+  id: string;                    // 고유 ID
+  info: EmployeeInfo;            // 기본 정보
+  employmentType: EmploymentType; // 고용 유형
+  status: EmployeeStatus;        // 상태
+  hireDate: string;              // 입사일
+  resignDate?: string;           // 퇴사일
+  department?: string;           // 부서
+  position?: string;             // 직위
+  
+  // 급여 정보 (계약서에서 가져옴)
+  salary: {
+    type: 'monthly' | 'hourly';  // 월급/시급
+    baseSalary: number;          // 기본급
+    hourlyWage?: number;         // 시급 (파트타임)
+    mealAllowance: number;       // 식대 (비과세)
+    carAllowance: number;        // 자가운전보조금 (비과세)
+    childcareAllowance: number;  // 보육수당 (비과세)
+    otherAllowances: {           // 기타 수당
+      name: string;
+      amount: number;
+      taxable: boolean;          // 과세 여부
+    }[];
+    bonusInfo?: string;          // 상여금 정보
+  };
+  
+  // 근무 조건
+  workCondition: {
+    weeklyHours: number;         // 주 소정근로시간
+    workDays: string[];          // 근무요일
+    workStartTime: string;       // 출근시간
+    workEndTime: string;         // 퇴근시간
+    breakTime: number;           // 휴게시간(분)
+  };
+  
+  // 4대보험 가입
+  insurance: {
+    national: boolean;
+    health: boolean;
+    employment: boolean;
+    industrial: boolean;
+  };
+  
+  // 비과세 옵션
+  taxExemptOptions: {
+    hasOwnCar: boolean;          // 본인 차량 보유
+    hasChildUnder6: boolean;     // 6세 이하 자녀
+    isResearcher: boolean;       // 연구원 여부
+  };
+  
+  // 메타 정보
+  createdAt: string;
+  updatedAt: string;
+  contractId?: string;           // 연결된 계약서 ID
+}
+
+// 급여 지급 기록
+export interface PaymentRecord {
+  id: string;
+  employeeId: string;
+  year: number;
+  month: number;
+  paymentDate: string;
+  
+  // 지급 내역
+  earnings: {
+    baseSalary: number;
+    overtime: number;
+    nightWork: number;
+    holidayWork: number;
+    bonus: number;
+    mealAllowance: number;
+    carAllowance: number;
+    childcareAllowance: number;
+    otherAllowances: { name: string; amount: number; taxable: boolean }[];
+  };
+  
+  // 공제 내역
+  deductions: {
+    nationalPension: number;
+    healthInsurance: number;
+    longTermCare: number;
+    employmentInsurance: number;
+    incomeTax: number;
+    localTax: number;
+    otherDeductions: { name: string; amount: number }[];
+  };
+  
+  // 계산 결과
+  summary: {
+    totalEarnings: number;       // 총 지급액
+    totalTaxable: number;        // 과세 소득
+    totalNonTaxable: number;     // 비과세 소득
+    totalDeductions: number;     // 총 공제액
+    netPay: number;              // 실수령액
+  };
+  
+  status: 'pending' | 'paid';
+  paidAt?: string;
+  createdAt: string;
 }
 
 // 근로계약서 공통
@@ -87,7 +200,7 @@ export interface FreelancerContract {
   taxWithholding: number;   // 원천징수 비율 (보통 3.3%)
 }
 
-// 직원 급여 정보
+// 직원 급여 정보 (기존)
 export interface EmployeeSalary {
   id: string;
   employee: EmployeeInfo;

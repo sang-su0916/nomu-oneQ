@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 const menuItems = [
   { href: '/', label: '홈', icon: '🏠' },
+  { href: '/employees', label: '직원관리', icon: '👥' },
   { 
     href: '/contract', 
     label: '근로계약서', 
@@ -16,8 +17,8 @@ const menuItems = [
       { href: '/contract/freelancer', label: '프리랜서' },
     ]
   },
-  { href: '/wage-ledger', label: '임금대장', icon: '📊' },
   { href: '/payslip', label: '급여명세서', icon: '💰' },
+  { href: '/wage-ledger', label: '임금대장', icon: '📊' },
   { href: '/work-rules', label: '취업규칙', icon: '📋' },
   { href: '/settings', label: '설정', icon: '⚙️' },
 ];

@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { CompanyInfo, EmployeeInfo } from '@/types';
-import { loadCompanyInfo, defaultCompanyInfo, formatCurrency, formatBusinessNumber } from '@/lib/storage';
+import { CompanyInfo, EmployeeInfo, Employee } from '@/types';
+import { loadCompanyInfo, defaultCompanyInfo, formatCurrency, formatBusinessNumber, loadEmployees, getActiveEmployees } from '@/lib/storage';
+import { calculateInsurance, calculateIncomeTax as calcTax, INSURANCE_RATES } from '@/lib/constants';
 
 interface PayslipData {
   company: CompanyInfo;
@@ -66,6 +67,8 @@ export default function PayslipPage() {
   const [payslip, setPayslip] = useState<PayslipData>(defaultPayslip);
   const [showPreview, setShowPreview] = useState(false);
   const [autoCalculate, setAutoCalculate] = useState(true);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,7 +76,33 @@ export default function PayslipPage() {
     if (savedCompany) {
       setPayslip(prev => ({ ...prev, company: savedCompany }));
     }
+    // 등록된 직원 목록 불러오기
+    setEmployees(getActiveEmployees());
   }, []);
+
+  // 직원 선택 시 정보 자동 입력
+  const handleEmployeeSelect = (employeeId: string) => {
+    setSelectedEmployeeId(employeeId);
+    
+    if (!employeeId) return;
+    
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) return;
+
+    // 직원 정보 및 급여 정보 자동 입력
+    setPayslip(prev => ({
+      ...prev,
+      employee: employee.info,
+      earnings: {
+        baseSalary: employee.salary.baseSalary,
+        overtime: 0,
+        bonus: 0,
+        mealAllowance: employee.salary.mealAllowance,
+        transportAllowance: employee.salary.carAllowance,
+        otherAllowance: employee.salary.childcareAllowance,
+      },
+    }));
+  };
 
   // 4대보험 자동 계산
   useEffect(() => {
@@ -190,6 +219,29 @@ export default function PayslipPage() {
           {/* 직원 정보 */}
           <div className="form-section">
             <h2 className="form-section-title">👤 직원 정보</h2>
+            
+            {/* 직원 선택 (연동) */}
+            {employees.length > 0 && (
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <label className="input-label text-blue-700">🔗 등록된 직원에서 선택</label>
+                <select
+                  className="input-field mt-1"
+                  value={selectedEmployeeId}
+                  onChange={(e) => handleEmployeeSelect(e.target.value)}
+                >
+                  <option value="">직접 입력</option>
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.info.name} ({emp.department || '부서없음'} / {emp.position || '직위없음'})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-blue-600 mt-1">
+                  💡 직원을 선택하면 급여 정보가 자동으로 입력됩니다.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="input-label">성명 *</label>
