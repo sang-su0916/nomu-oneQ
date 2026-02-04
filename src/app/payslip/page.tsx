@@ -90,9 +90,15 @@ export default function PayslipPage() {
     if (!employee) return;
 
     // 직원 정보 및 급여 정보 자동 입력
+    // 부서/직책은 address 필드에 임시 저장 (UI에서 부서/직책 라벨로 표시됨)
+    const deptPosition = [employee.department, employee.position].filter(Boolean).join(' / ') || '';
+    
     setPayslip(prev => ({
       ...prev,
-      employee: employee.info,
+      employee: {
+        ...employee.info,
+        address: deptPosition, // 부서/직책을 address에 저장 (UI 호환용)
+      },
       earnings: {
         baseSalary: employee.salary.baseSalary,
         overtime: 0,
@@ -108,8 +114,9 @@ export default function PayslipPage() {
   useEffect(() => {
     if (!autoCalculate) return;
     
-    const totalEarnings = payslip.earnings.baseSalary + payslip.earnings.overtime + payslip.earnings.bonus;
-    const taxableIncome = totalEarnings - payslip.earnings.mealAllowance; // 식대는 비과세
+    // 과세소득 = 기본급 + 연장수당 + 상여금 (비과세 항목 제외)
+    // 비과세: 식대, 자가운전보조금, 보육수당 등
+    const taxableIncome = payslip.earnings.baseSalary + payslip.earnings.overtime + payslip.earnings.bonus;
     
     setPayslip(prev => ({
       ...prev,

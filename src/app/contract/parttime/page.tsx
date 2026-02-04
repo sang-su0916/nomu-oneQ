@@ -82,7 +82,7 @@ const defaultContract: ParttimeContractData = {
   flexibleSchedule: defaultFlexibleSchedule,
   weeklyHours: 15,
   weeklyHoliday: '매주 일요일',
-  hourlyWage: 10030,  // 2026년 최저임금
+  hourlyWage: 10320,  // 2026년 최저임금
   weeklyAllowance: true,
   paymentMethod: '근로자 명의 예금통장에 입금',
   paymentDate: 10,
@@ -136,7 +136,7 @@ export default function ParttimeContractPage() {
         workDays: emp.workCondition.workDays,
       },
       weeklyHours: emp.workCondition.weeklyHours,
-      hourlyWage: emp.salary.hourlyWage || 10030,
+      hourlyWage: emp.salary.hourlyWage || 10320,
       insurance: emp.insurance,
     }));
   };
@@ -574,13 +574,13 @@ export default function ParttimeContractPage() {
                 <input
                   type="number"
                   className="input-field"
-                  placeholder="10030"
+                  placeholder="10320"
                   value={contract.hourlyWage || ''}
                   onChange={(e) => updateContract('hourlyWage', parseInt(e.target.value) || 0)}
                 />
                 <p className="text-xs text-purple-600 mt-1 font-medium">
-                  2026년 최저시급: 10,030원 
-                  {contract.hourlyWage < 10030 && contract.hourlyWage > 0 && (
+                  2026년 최저시급: 10,320원 
+                  {contract.hourlyWage < 10320 && contract.hourlyWage > 0 && (
                     <span className="text-red-500 ml-2">⚠️ 최저임금 미달!</span>
                   )}
                 </p>
@@ -874,7 +874,7 @@ function ParttimeContractPreview({ contract }: { contract: ParttimeContractData 
               <strong style={{ fontSize: '16px', color: '#7c3aed' }}>{formatCurrency(contract.hourlyWage)}</strong>
               <br />
               <span style={{ color: '#6b7280', fontSize: '13px' }}>
-                ※ 2026년 최저임금 10,030원 이상
+                ※ 2026년 최저임금 10,320원 이상
               </span>
             </td>
           </tr>
