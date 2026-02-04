@@ -151,95 +151,99 @@ export default function EmployeesPage() {
                      formData.salary.carAllowance + formData.salary.childcareAllowance;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">👥 직원 관리</h1>
-          <p className="text-gray-500 mt-1">직원 등록 및 계약/급여 연동</p>
+          <h1 className="heading-lg flex items-center gap-2">
+            <span className="icon-box icon-box-primary">👥</span>
+            직원 관리
+          </h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1">직원 등록 및 계약/급여 연동</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="btn-primary"
+          className="btn btn-primary"
         >
-          ➕ 직원 등록
+          + 직원 등록
         </button>
       </div>
 
       {/* 직원 목록 */}
       {!showForm && (
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="table-container">
           {employees.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">
-              <p className="text-4xl mb-4">👤</p>
-              <p>등록된 직원이 없습니다.</p>
+            <div className="empty-state">
+              <div className="empty-state-icon">👤</div>
+              <p className="empty-state-title">등록된 직원이 없습니다</p>
+              <p className="empty-state-desc">첫 직원을 등록해 주세요</p>
               <button
                 onClick={() => setShowForm(true)}
-                className="mt-4 text-blue-500 hover:underline"
+                className="btn btn-primary mt-4"
               >
-                첫 직원 등록하기 →
+                직원 등록하기
               </button>
             </div>
           ) : (
-            <table className="w-full">
-              <thead className="bg-gray-50">
+            <table className="table-modern">
+              <thead>
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">이름</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">고용형태</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">부서/직위</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">입사일</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-600">월 급여</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600">상태</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600">관리</th>
+                  <th>이름</th>
+                  <th>고용형태</th>
+                  <th>부서/직위</th>
+                  <th>입사일</th>
+                  <th className="text-right">월 급여</th>
+                  <th className="text-center">상태</th>
+                  <th className="text-center">관리</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {employees.map(emp => (
-                  <tr key={emp.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{emp.info.name}</div>
-                      <div className="text-sm text-gray-400">{formatResidentNumber(emp.info.residentNumber)}</div>
+                  <tr key={emp.id}>
+                    <td>
+                      <div className="font-medium">{emp.info.name}</div>
+                      <div className="text-xs text-[var(--text-muted)]">{formatResidentNumber(emp.info.residentNumber)}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        emp.employmentType === 'fulltime' ? 'bg-blue-100 text-blue-700' :
-                        emp.employmentType === 'parttime' ? 'bg-purple-100 text-purple-700' :
-                        'bg-orange-100 text-orange-700'
+                    <td>
+                      <span className={`badge ${
+                        emp.employmentType === 'fulltime' ? 'badge-primary' :
+                        emp.employmentType === 'parttime' ? 'badge-info' :
+                        'badge-warning'
                       }`}>
                         {EMPLOYMENT_TYPE_LABELS[emp.employmentType]}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">
+                    <td className="text-[var(--text-muted)]">
                       {emp.department || '-'} / {emp.position || '-'}
                     </td>
-                    <td className="px-6 py-4 text-gray-600">
+                    <td className="text-[var(--text-muted)]">
                       {formatDateShort(emp.hireDate)}
                     </td>
-                    <td className="px-6 py-4 text-right font-medium text-gray-900">
+                    <td className="text-right font-medium">
                       {emp.salary.type === 'monthly' 
                         ? formatCurrency(emp.salary.baseSalary + emp.salary.mealAllowance + emp.salary.carAllowance + emp.salary.childcareAllowance)
                         : `시급 ${formatCurrency(emp.salary.hourlyWage || 0)}`
                       }
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        emp.status === 'active' ? 'bg-green-100 text-green-700' :
-                        emp.status === 'resigned' ? 'bg-gray-100 text-gray-700' :
-                        'bg-yellow-100 text-yellow-700'
+                    <td className="text-center">
+                      <span className={`badge ${
+                        emp.status === 'active' ? 'badge-success' :
+                        emp.status === 'resigned' ? 'badge-neutral' :
+                        'badge-warning'
                       }`}>
                         {emp.status === 'active' ? '재직중' : emp.status === 'resigned' ? '퇴사' : '대기'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleEdit(emp)}
-                          className="text-blue-500 hover:text-blue-700"
+                          className="btn btn-ghost btn-sm"
                         >
                           수정
                         </button>
                         <button
                           onClick={() => handleDelete(emp.id)}
-                          className="text-red-500 hover:text-red-700"
+                          className="btn btn-ghost btn-sm text-[var(--danger)]"
                         >
                           삭제
                         </button>
@@ -470,7 +474,7 @@ export default function EmployeesPage() {
                         <li>✅ 자가운전보조금: 월 {formatCurrency(TAX_EXEMPTION_LIMITS.carAllowance.monthly)}</li>
                       )}
                       {formData.taxExemptOptions.hasChildUnder6 && (
-                        <li>✅ 보육수당: 월 {formatCurrency(TAX_EXEMPTION_LIMITS.childcare.monthly)}</li>
+                        <li>✅ 보육수당: 월 {formatCurrency(TAX_EXEMPTION_LIMITS.childcare.monthlyPerChild)}</li>
                       )}
                       {formData.taxExemptOptions.isResearcher && (
                         <li>✅ 연구활동비: 월 {formatCurrency(TAX_EXEMPTION_LIMITS.research.monthly)}</li>
@@ -628,8 +632,8 @@ export default function EmployeesPage() {
             <h3 className="form-section-title">🏥 4대보험 가입</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { key: 'national', label: '국민연금', rate: '4.5%' },
-                { key: 'health', label: '건강보험', rate: '3.545%' },
+                { key: 'national', label: '국민연금', rate: '4.75%' },
+                { key: 'health', label: '건강보험', rate: '3.595%' },
                 { key: 'employment', label: '고용보험', rate: '0.9%' },
                 { key: 'industrial', label: '산재보험', rate: '사업주 전액' },
               ].map(item => (
@@ -653,11 +657,11 @@ export default function EmployeesPage() {
           </div>
 
           {/* 저장 버튼 */}
-          <div className="flex gap-4 justify-end">
-            <button onClick={resetForm} className="btn-secondary">
+          <div className="flex gap-3 justify-end">
+            <button onClick={resetForm} className="btn btn-secondary">
               취소
             </button>
-            <button onClick={handleSave} className="btn-primary">
+            <button onClick={handleSave} className="btn btn-primary">
               {editingId ? '수정 완료' : '직원 등록'}
             </button>
           </div>
@@ -666,21 +670,24 @@ export default function EmployeesPage() {
 
       {/* 연동 기능 안내 */}
       {!showForm && employees.length > 0 && (
-        <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-          <h3 className="font-bold text-blue-800 mb-3">🔗 문서 연동 기능</h3>
-          <p className="text-gray-600 mb-4">
-            등록된 직원 정보로 근로계약서, 급여명세서, 임금대장을 자동으로 작성할 수 있습니다.
-          </p>
-          <div className="flex gap-4">
-            <Link href="/contract/fulltime" className="text-blue-600 hover:underline">
-              📄 근로계약서 →
-            </Link>
-            <Link href="/payslip" className="text-blue-600 hover:underline">
-              💰 급여명세서 →
-            </Link>
-            <Link href="/wage-ledger" className="text-blue-600 hover:underline">
-              📊 임금대장 →
-            </Link>
+        <div className="mt-6 alert alert-info">
+          <span className="text-lg">🔗</span>
+          <div>
+            <p className="font-medium text-sm mb-2">문서 연동 기능</p>
+            <p className="text-sm opacity-80 mb-3">
+              등록된 직원 정보로 근로계약서, 급여명세서, 임금대장을 자동으로 작성할 수 있습니다.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/contract/fulltime" className="btn btn-sm btn-secondary">
+                📋 근로계약서
+              </Link>
+              <Link href="/payslip" className="btn btn-sm btn-secondary">
+                💵 급여명세서
+              </Link>
+              <Link href="/wage-ledger" className="btn btn-sm btn-secondary">
+                📊 임금대장
+              </Link>
+            </div>
           </div>
         </div>
       )}

@@ -1,6 +1,9 @@
 /**
  * 2026년 기준 노무 관련 상수
  * 매년 업데이트 필요
+ * 
+ * 📅 최종 업데이트: 2026-02-04
+ * 📌 출처: 국민건강보험공단, 국민연금공단, 고용노동부
  */
 
 // ============================================
@@ -15,39 +18,41 @@ export const MINIMUM_WAGE = {
 };
 
 // ============================================
-// 4대보험료율 (2026년)
+// 4대보험료율 (2026년) ⭐ 업데이트
 // 근로자 부담분
 // ============================================
 export const INSURANCE_RATES = {
   year: 2026,
   
-  // 국민연금: 9% (사용자 4.5% + 근로자 4.5%)
+  // 국민연금: 9.5% (사용자 4.75% + 근로자 4.75%) ⬆️ 2025년 9%에서 인상
   nationalPension: {
-    employee: 0.045,  // 4.5%
-    employer: 0.045,  // 4.5%
-    total: 0.09,
-    // 기준소득월액 상한: 617만원, 하한: 39만원
-    maxBase: 6170000,
-    minBase: 390000,
+    employee: 0.0475,  // 4.75%
+    employer: 0.0475,  // 4.75%
+    total: 0.095,       // 9.5%
+    // 기준소득월액 상한: 637만원, 하한: 40만원 (2026.6.30까지)
+    maxBase: 6370000,  // ⬆️ 617만원에서 인상
+    minBase: 400000,   // ⬆️ 39만원에서 인상
   },
   
-  // 건강보험: 7.09% (사용자 3.545% + 근로자 3.545%)
+  // 건강보험: 7.19% (사용자 3.595% + 근로자 3.595%) ⬆️ 2025년 7.09%에서 인상
   healthInsurance: {
-    employee: 0.03545,  // 3.545%
-    employer: 0.03545,  // 3.545%
-    total: 0.0709,
+    employee: 0.03595,  // 3.595%
+    employer: 0.03595,  // 3.595%
+    total: 0.0719,
+    // 보험료액 상한액: 900만 8,340원
+    maxPremium: 9008340,
   },
   
-  // 장기요양보험: 건강보험료의 12.95%
+  // 장기요양보험: 건강보험료의 12.95% (동결 가정)
   longTermCare: {
     rate: 0.1295,  // 건강보험료의 12.95%
   },
   
-  // 고용보험
+  // 고용보험: 1.8% (근로자 0.9% 고정)
   employmentInsurance: {
     employee: 0.009,  // 0.9%
     employer: {
-      // 사업장 규모별 차등
+      // 사업장 규모별 차등 (근로자 부담분 0.9% + 사업주 추가 부담)
       under150: 0.009 + 0.0025,  // 150인 미만: 1.15%
       over150: 0.009 + 0.0045,   // 150인 이상: 1.35%
       over1000: 0.009 + 0.0065,  // 1000인 이상: 1.55%
@@ -61,7 +66,7 @@ export const INSURANCE_RATES = {
 };
 
 // ============================================
-// 비과세 한도 (2026년)
+// 비과세 한도 (2026년) ⭐ 업데이트
 // ============================================
 export const TAX_EXEMPTION_LIMITS = {
   year: 2026,
@@ -79,10 +84,12 @@ export const TAX_EXEMPTION_LIMITS = {
     condition: '출퇴근용은 비과세 불가',
   },
   
-  // 출산/보육수당 (6세 이하 자녀)
+  // 출산/보육수당 (6세 이하 자녀) ⭐ 2026년 개정
   childcare: {
-    monthly: 200000,
+    monthlyPerChild: 200000,  // 자녀 1인당 월 20만원 (2026년~)
+    maxAge: 6,  // 6세 이하 (변경 없음)
     description: '출산/보육수당 (6세 이하 자녀)',
+    note: '2026년부터 자녀 1인당 월 20만원 (기존: 1인당 총 20만원)',
   },
   
   // 연구활동비 (연구원)
@@ -91,11 +98,25 @@ export const TAX_EXEMPTION_LIMITS = {
     description: '연구활동비 (연구원 한정)',
   },
   
+  // 유류비/차량유지비 (업무용)
+  fuel: {
+    monthly: 200000,
+    description: '유류비/차량유지비 (업무용 차량)',
+    condition: '자가운전보조금과 별개로 적용 가능',
+  },
+  
   // 생산직 야간근로수당 (월정액 210만원 이하)
   nightShift: {
     yearlyLimit: 2400000,
     monthlyWageLimit: 2100000,
     description: '생산직 야간근로수당',
+  },
+  
+  // 출산지원금 (2024년~)
+  birthSupport: {
+    limit: 'unlimited',  // 전액 비과세
+    condition: '출산 후 2년 이내 지급, 2회 이내',
+    description: '출산지원금 (출생일 이후 2년 내 지급 시 전액 비과세)',
   },
 };
 
@@ -135,8 +156,9 @@ export interface SalaryOptimization {
 export function optimizeSalary(
   totalGross: number,
   options: {
-    hasOwnCar?: boolean;      // 본인 차량 있음
-    hasChildUnder6?: boolean; // 6세 이하 자녀 있음
+    hasOwnCar?: boolean;        // 본인 차량 있음
+    hasChildUnder6?: boolean;   // 6세 이하 자녀 있음 (기존 호환용)
+    childrenUnder6?: number;    // 6세 이하 자녀 수 (2026년 개정 반영)
   } = {}
 ): SalaryOptimization {
   const warnings: string[] = [];
@@ -155,10 +177,13 @@ export function optimizeSalary(
     remainingAmount -= carAllowance;
   }
   
-  // 보육수당 (6세 이하 자녀 있는 경우만)
+  // 보육수당 (6세 이하 자녀 수에 따라 - 2026년 개정)
+  // 자녀 수가 지정되지 않고 hasChildUnder6만 있으면 1명으로 간주
   let childcareAllowance = 0;
-  if (options.hasChildUnder6 && remainingAmount > 0) {
-    childcareAllowance = Math.min(TAX_EXEMPTION_LIMITS.childcare.monthly, remainingAmount);
+  const childrenCount = options.childrenUnder6 ?? (options.hasChildUnder6 ? 1 : 0);
+  if (childrenCount > 0 && remainingAmount > 0) {
+    const maxChildcare = TAX_EXEMPTION_LIMITS.childcare.monthlyPerChild * childrenCount;
+    childcareAllowance = Math.min(maxChildcare, remainingAmount);
     remainingAmount -= childcareAllowance;
   }
   
@@ -167,7 +192,6 @@ export function optimizeSalary(
   
   // 2. 최저임금 체크
   if (baseSalary < MINIMUM_WAGE.monthly) {
-    // 비과세 포함해도 시급 환산 시 최저임금 이상이어야 함
     const effectiveHourly = totalGross / MINIMUM_WAGE.monthlyHours;
     if (effectiveHourly < MINIMUM_WAGE.hourly) {
       warnings.push(`⚠️ 최저임금 미달! (시급 ${Math.floor(effectiveHourly).toLocaleString()}원 < ${MINIMUM_WAGE.hourly.toLocaleString()}원)`);
@@ -219,7 +243,7 @@ export function optimizeSalary(
 }
 
 // ============================================
-// 4대보험료 계산
+// 4대보험료 계산 (2026년 요율 적용)
 // ============================================
 export interface InsuranceCalculation {
   nationalPension: number;

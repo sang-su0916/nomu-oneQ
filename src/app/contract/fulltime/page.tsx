@@ -615,11 +615,11 @@ export default function FulltimeContractPage() {
 
           {/* 4대보험 */}
           <div className="form-section">
-            <h2 className="form-section-title">🏥 사회보험 가입</h2>
+            <h2 className="form-section-title">🏥 사회보험 가입 <span className="text-xs font-normal text-zinc-400">2026년 기준</span></h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { key: 'national', label: '국민연금', rate: '4.5%' },
-                { key: 'health', label: '건강보험', rate: '3.545%' },
+                { key: 'national', label: '국민연금', rate: '4.75%' },
+                { key: 'health', label: '건강보험', rate: '3.595%' },
                 { key: 'employment', label: '고용보험', rate: '0.9%' },
                 { key: 'industrial', label: '산재보험', rate: '전액 사업주' },
               ].map(item => (
