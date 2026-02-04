@@ -77,6 +77,11 @@ interface WorkRulesData {
   includeStatementForm: boolean;     // 진술서
   includeDisciplineResolution: boolean; // 징계의결서
   includeDisciplineNotice: boolean;  // 징계처분 사유설명서
+  
+  // ========== 신고 서식 옵션 ==========
+  includeReportForm: boolean;        // 취업규칙 신고서
+  includeOpinionForm: boolean;       // 근로자 과반수 의견서
+  includeConsentForm: boolean;       // 근로자 과반수 동의서 (불이익 변경 시)
 }
 
 const defaultWorkRules: WorkRulesData = {
@@ -137,6 +142,10 @@ const defaultWorkRules: WorkRulesData = {
   includeStatementForm: false,
   includeDisciplineResolution: false,
   includeDisciplineNotice: false,
+  
+  includeReportForm: false,
+  includeOpinionForm: false,
+  includeConsentForm: false,
 };
 
 export default function WorkRulesPage() {
@@ -876,10 +885,38 @@ export default function WorkRulesPage() {
                   ))}
                 </div>
 
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-800">
-                    <strong>💡 안내:</strong> 별지 서식은 취업규칙 본문 뒤에 첨부되어 함께 출력됩니다.
-                    노동청 신고 시 별지 서식은 선택사항이며, 실제 인사위원회 운영 시 활용하시면 됩니다.
+                <div className="mt-6 border-t pt-6">
+                  <h3 className="font-semibold text-gray-800 mb-3">📝 신고 서식 (노동청 제출용)</h3>
+                  <p className="text-sm text-gray-600 mb-4">취업규칙을 노동청에 신고할 때 필요한 서식입니다.</p>
+                  
+                  <div className="space-y-3">
+                    {[
+                      { id: 'includeReportForm', label: '취업규칙 신고서', desc: '취업규칙 제정 또는 변경 시 노동청에 제출하는 신고서' },
+                      { id: 'includeOpinionForm', label: '근로자 과반수 의견서', desc: '취업규칙 제정/변경 시 근로자 과반수 의견 청취 확인서' },
+                      { id: 'includeConsentForm', label: '근로자 과반수 동의서', desc: '불이익 변경 시 근로자 과반수 동의 확인서 (불이익 변경 시 필수)' },
+                    ].map(form => (
+                      <label key={form.id} className="flex items-start gap-3 cursor-pointer p-4 border rounded-lg hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          checked={rules[form.id as keyof WorkRulesData] as boolean}
+                          onChange={(e) => setRules(prev => ({ ...prev, [form.id]: e.target.checked }))}
+                          className="w-5 h-5 mt-0.5"
+                        />
+                        <div>
+                          <span className="font-semibold">{form.label}</span>
+                          <p className="text-sm text-gray-500 mt-1">{form.desc}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                  <p className="text-sm text-amber-800">
+                    <strong>⚠️ 신고 시 주의:</strong><br />
+                    • 상시 10인 이상 사업장은 취업규칙 신고 의무 (근로기준법 제93조)<br />
+                    • 제정/변경 시 → 의견서 첨부<br />
+                    • <strong>불이익 변경 시 → 동의서 필수</strong> (동의 없으면 무효)
                   </p>
                 </div>
               </div>
@@ -1851,6 +1888,212 @@ function WorkRulesPreview({ rules }: { rules: WorkRulesData }) {
           <p style={{ textAlign: 'center', marginTop: '20px' }}>_________________ 귀하</p>
           <div style={{ marginTop: '30px', padding: '15px', border: '1px solid #333', backgroundColor: '#fafafa', fontSize: '10pt' }}>
             <p><strong>참고:</strong> 이 처분에 대한 불복이 있을 때에는 취업규칙 제68조에 의하여 이 설명서를 받은 날로부터 7일 이내에 인사위원회에 재심을 청구할 수 있습니다.</p>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== 신고 서식 ==================== */}
+      {(rules.includeReportForm || rules.includeOpinionForm || rules.includeConsentForm) && (
+        <div style={{ pageBreakBefore: 'always' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 'bold', textAlign: 'center', marginTop: '40px', marginBottom: '30px' }}>
+            신 고 서 식
+          </h2>
+        </div>
+      )}
+
+      {/* 취업규칙 신고서 */}
+      {rules.includeReportForm && (
+        <div style={{ pageBreakBefore: 'always', padding: '20px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #333', paddingBottom: '10px' }}>
+            취업규칙 (제정/변경) 신고서
+          </h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+            <tbody>
+              <tr>
+                <td rowSpan={4} style={{ border: '1px solid #333', padding: '10px', width: '15%', backgroundColor: '#f5f5f5', fontWeight: 'bold', textAlign: 'center' }}>사업장<br />현황</td>
+                <td style={{ border: '1px solid #333', padding: '10px', width: '15%', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>사업장명</td>
+                <td style={{ border: '1px solid #333', padding: '10px', width: '35%' }}>{rules.company.name || ''}</td>
+                <td style={{ border: '1px solid #333', padding: '10px', width: '15%', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>대표자</td>
+                <td style={{ border: '1px solid #333', padding: '10px', width: '20%' }}>{rules.company.ceoName || ''}</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>사업자등록번호</td>
+                <td style={{ border: '1px solid #333', padding: '10px' }}>{rules.company.businessNumber || ''}</td>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>업종</td>
+                <td style={{ border: '1px solid #333', padding: '10px' }}>{rules.industryType}</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>소재지</td>
+                <td colSpan={3} style={{ border: '1px solid #333', padding: '10px' }}>{rules.company.address || ''}</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>상시근로자수</td>
+                <td style={{ border: '1px solid #333', padding: '10px' }}>{rules.employeeCount}</td>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>전화번호</td>
+                <td style={{ border: '1px solid #333', padding: '10px' }}>{rules.company.phone || ''}</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold', textAlign: 'center' }}>신고구분</td>
+                <td colSpan={4} style={{ border: '1px solid #333', padding: '10px' }}>
+                  □ 제정 &nbsp;&nbsp;&nbsp;&nbsp; □ 변경
+                </td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold', textAlign: 'center' }}>변경사유<br />(변경 시)</td>
+                <td colSpan={4} style={{ border: '1px solid #333', padding: '10px', height: '80px', verticalAlign: 'top' }}></td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold', textAlign: 'center' }}>주요 변경내용<br />(변경 시)</td>
+                <td colSpan={4} style={{ border: '1px solid #333', padding: '10px', height: '100px', verticalAlign: 'top' }}></td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold', textAlign: 'center' }}>의견청취<br />/동의여부</td>
+                <td colSpan={4} style={{ border: '1px solid #333', padding: '10px' }}>
+                  □ 의견청취 완료 (일반 변경) &nbsp;&nbsp;&nbsp;&nbsp; □ 동의 완료 (불이익 변경)
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p style={{ textAlign: 'center', marginBottom: '20px' }}>
+            「근로기준법」 제93조 및 같은 법 시행령 제46조에 따라 위와 같이 취업규칙을 신고합니다.
+          </p>
+          <p style={{ textAlign: 'center', marginBottom: '30px' }}>______년 ______월 ______일</p>
+          <p style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '40px' }}>신고인 (대표자) _________________ (서명 또는 인)</p>
+          <p style={{ textAlign: 'center', fontWeight: 'bold' }}>○○지방고용노동청(지청)장 귀하</p>
+          <div style={{ marginTop: '30px', padding: '15px', border: '1px solid #333', backgroundColor: '#fafafa', fontSize: '9pt' }}>
+            <p><strong>첨부서류:</strong></p>
+            <p>1. 취업규칙 1부</p>
+            <p>2. 근로자 과반수 의견서 또는 동의서 1부</p>
+            <p>3. 취업규칙 신·구 조문대비표 1부 (변경 시)</p>
+          </div>
+        </div>
+      )}
+
+      {/* 근로자 과반수 의견서 */}
+      {rules.includeOpinionForm && (
+        <div style={{ pageBreakBefore: 'always', padding: '20px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #333', paddingBottom: '10px' }}>
+            근로자 과반수 의견서
+          </h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+            <tbody>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', width: '25%', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>사업장명</td>
+                <td style={{ border: '1px solid #333', padding: '10px', width: '75%' }}>{rules.company.name || ''}</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>대표자</td>
+                <td style={{ border: '1px solid #333', padding: '10px' }}>{rules.company.ceoName || ''}</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>상시근로자수</td>
+                <td style={{ border: '1px solid #333', padding: '10px' }}>{rules.employeeCount} (과반수: _______명)</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>의견청취 일시</td>
+                <td style={{ border: '1px solid #333', padding: '10px' }}>______년 ______월 ______일</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>의견청취 방법</td>
+                <td style={{ border: '1px solid #333', padding: '10px' }}>
+                  □ 전체 회의 &nbsp;&nbsp; □ 부서별 회의 &nbsp;&nbsp; □ 서면 회람 &nbsp;&nbsp; □ 기타 (________________)
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div style={{ border: '1px solid #333', padding: '15px', marginBottom: '20px', minHeight: '150px' }}>
+            <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>의견 내용:</p>
+            <p>&nbsp;</p>
+          </div>
+          <p style={{ textAlign: 'center', marginBottom: '30px' }}>
+            위와 같이 취업규칙의 제정(변경)에 대하여 근로자 과반수의 의견을 청취하였음을 확인합니다.
+          </p>
+          <p style={{ textAlign: 'center', marginBottom: '20px' }}>______년 ______월 ______일</p>
+          <table style={{ width: '80%', margin: '0 auto', marginBottom: '20px' }}>
+            <tbody>
+              <tr>
+                <td style={{ padding: '10px', width: '50%', textAlign: 'center' }}>
+                  <p style={{ marginBottom: '10px' }}>근로자 대표</p>
+                  <p>성명: _________________ (서명 또는 인)</p>
+                </td>
+                <td style={{ padding: '10px', width: '50%', textAlign: 'center' }}>
+                  <p style={{ marginBottom: '10px' }}>사용자 (대표자)</p>
+                  <p>성명: _________________ (서명 또는 인)</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#f5f5f5', fontSize: '9pt' }}>
+            <p>※ "근로자 과반수"란 근로자 과반수로 조직된 노동조합이 있는 경우에는 그 노동조합을, 근로자 과반수로 조직된 노동조합이 없는 경우에는 근로자 과반수를 의미합니다.</p>
+          </div>
+        </div>
+      )}
+
+      {/* 근로자 과반수 동의서 */}
+      {rules.includeConsentForm && (
+        <div style={{ pageBreakBefore: 'always', padding: '20px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #333', paddingBottom: '10px' }}>
+            근로자 과반수 동의서 (불이익 변경 시)
+          </h3>
+          <div style={{ padding: '10px', backgroundColor: '#fff3cd', border: '1px solid #ffc107', marginBottom: '20px', fontSize: '10pt' }}>
+            <p><strong>⚠️ 중요:</strong> 취업규칙을 근로자에게 불리하게 변경하는 경우에는 근로자 과반수의 <strong>동의</strong>를 받아야 합니다. 동의 없이 변경된 취업규칙은 무효입니다. (근로기준법 제94조)</p>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+            <tbody>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', width: '25%', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>사업장명</td>
+                <td style={{ border: '1px solid #333', padding: '10px', width: '75%' }}>{rules.company.name || ''}</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>대표자</td>
+                <td style={{ border: '1px solid #333', padding: '10px' }}>{rules.company.ceoName || ''}</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>상시근로자수</td>
+                <td style={{ border: '1px solid #333', padding: '10px' }}>{rules.employeeCount} (과반수: _______명)</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>동의 일시</td>
+                <td style={{ border: '1px solid #333', padding: '10px' }}>______년 ______월 ______일</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #333', padding: '10px', backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>동의 방법</td>
+                <td style={{ border: '1px solid #333', padding: '10px' }}>
+                  □ 전체 회의 (거수/투표) &nbsp;&nbsp; □ 서면 동의 &nbsp;&nbsp; □ 기타 (________________)
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div style={{ border: '1px solid #333', padding: '15px', marginBottom: '20px' }}>
+            <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>불이익 변경 내용:</p>
+            <p style={{ minHeight: '100px' }}>&nbsp;</p>
+          </div>
+          <div style={{ border: '1px solid #333', padding: '15px', marginBottom: '20px' }}>
+            <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>동의 현황:</p>
+            <p>총 근로자 수: _______명</p>
+            <p>동의자 수: _______명 (과반수 이상 확인: □ 예 □ 아니오)</p>
+          </div>
+          <p style={{ textAlign: 'center', marginBottom: '30px' }}>
+            위와 같이 취업규칙의 불이익 변경에 대하여 근로자 과반수의 동의를 받았음을 확인합니다.
+          </p>
+          <p style={{ textAlign: 'center', marginBottom: '20px' }}>______년 ______월 ______일</p>
+          <table style={{ width: '80%', margin: '0 auto', marginBottom: '20px' }}>
+            <tbody>
+              <tr>
+                <td style={{ padding: '10px', width: '50%', textAlign: 'center' }}>
+                  <p style={{ marginBottom: '10px' }}>근로자 대표</p>
+                  <p>성명: _________________ (서명 또는 인)</p>
+                </td>
+                <td style={{ padding: '10px', width: '50%', textAlign: 'center' }}>
+                  <p style={{ marginBottom: '10px' }}>사용자 (대표자)</p>
+                  <p>성명: _________________ (서명 또는 인)</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div style={{ marginTop: '20px', padding: '10px', backgroundColor: '#f5f5f5', fontSize: '9pt' }}>
+            <p>※ 불이익 변경의 예: 임금 삭감, 근로시간 연장, 휴가일수 감소, 복리후생 축소, 징계 강화 등</p>
+            <p>※ 동의 방법: 근로자 개개인의 동의가 아닌 집단적 의사결정 방법(회의, 투표 등)으로 과반수의 동의를 받아야 합니다.</p>
           </div>
         </div>
       )}
