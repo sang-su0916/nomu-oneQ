@@ -10,7 +10,7 @@ const menuItems = [
   { href: '/employees', label: '직원관리', icon: '👥' },
   {
     href: '/contract',
-    label: '계약서',
+    label: '근로계약서',
     icon: '📋',
     submenu: [
       { href: '/contract/fulltime', label: '정규직' },

@@ -7,125 +7,64 @@ import { Employee } from '@/types';
 import { loadCompanyInfo, loadEmployees, formatCurrency } from '@/lib/storage';
 import { MINIMUM_WAGE } from '@/lib/constants';
 
-const features = [
+const serviceCategories = [
   {
-    href: '/employees',
-    icon: '👥',
-    title: '직원 관리',
-    description: '직원 등록 및 급여 최적화',
-    badge: '핵심',
+    id: 'core', label: '핵심 기능', icon: '⚡', bg: '#eff6ff',
+    items: [
+      { href: '/employees', title: '직원 관리' },
+      { href: '/settings', title: '회사 정보 설정' },
+    ],
   },
   {
-    href: '/contract/fulltime',
-    icon: '📋',
-    title: '정규직 근로계약서',
-    description: '고용노동부 표준 양식',
+    id: 'contract', label: '근로계약서', icon: '📋', bg: '#ecfdf5',
+    items: [
+      { href: '/contract/fulltime', title: '정규직' },
+      { href: '/contract/parttime', title: '단시간(파트타임)' },
+      { href: '/contract/freelancer', title: '프리랜서 용역' },
+    ],
   },
   {
-    href: '/contract/parttime',
-    icon: '⏰',
-    title: '단시간 근로계약서',
-    description: '파트타임/아르바이트용',
+    id: 'salary', label: '급여 · 임금', icon: '💵', bg: '#fffbeb',
+    items: [
+      { href: '/payslip', title: '급여명세서' },
+      { href: '/wage-ledger', title: '임금대장' },
+    ],
   },
   {
-    href: '/contract/freelancer',
-    icon: '💼',
-    title: '프리랜서 용역계약서',
-    description: '업무위탁 계약서',
+    id: 'onboard', label: '입사 서류', icon: '📥', bg: '#eef2ff',
+    items: [
+      { href: '/documents/privacy-consent', title: '개인정보 동의서' },
+      { href: '/documents/nda', title: '비밀유지 서약서' },
+    ],
   },
   {
-    href: '/documents/privacy-consent',
-    icon: '🔒',
-    title: '개인정보 동의서',
-    description: '개인정보보호법 필수',
-    badge: '입사',
+    id: 'attendance', label: '근태 관리', icon: '🕐', bg: '#fdf2f8',
+    items: [
+      { href: '/documents/attendance', title: '출퇴근기록부' },
+      { href: '/documents/annual-leave', title: '연차관리대장' },
+      { href: '/documents/overtime', title: '시간외근로 합의서' },
+    ],
   },
   {
-    href: '/documents/nda',
-    icon: '🤐',
-    title: '비밀유지 서약서',
-    description: '영업비밀 보호',
-    badge: '입사',
+    id: 'certificate', label: '증명서', icon: '📜', bg: '#fefce8',
+    items: [
+      { href: '/documents/certificate', title: '재직증명서' },
+      { href: '/documents/career-certificate', title: '경력증명서' },
+    ],
   },
   {
-    href: '/documents/attendance',
-    icon: '🕐',
-    title: '출퇴근기록부',
-    description: '5인 이상 기록 의무',
-    badge: '근태',
+    id: 'offboard', label: '퇴사 서류', icon: '📤', bg: '#fef2f2',
+    items: [
+      { href: '/documents/resignation', title: '사직서' },
+      { href: '/documents/retirement-pay', title: '퇴직금 정산서' },
+      { href: '/documents/annual-leave-notice', title: '연차촉진 통보서' },
+    ],
   },
   {
-    href: '/documents/annual-leave',
-    icon: '🌴',
-    title: '연차관리대장',
-    description: '연차 발생·사용 현황',
-    badge: '근태',
-  },
-  {
-    href: '/documents/overtime',
-    icon: '🔔',
-    title: '시간외근로 합의서',
-    description: '연장·야간·휴일 합의',
-    badge: '근태',
-  },
-  {
-    href: '/documents/certificate',
-    icon: '📜',
-    title: '재직증명서',
-    description: '은행·관공서 제출용',
-    badge: '증명',
-  },
-  {
-    href: '/documents/career-certificate',
-    icon: '🏅',
-    title: '경력증명서',
-    description: '퇴사자 경력 증빙',
-    badge: '증명',
-  },
-  {
-    href: '/documents/resignation',
-    icon: '✉️',
-    title: '사직서',
-    description: '자발적 퇴사 증빙',
-    badge: '퇴사',
-  },
-  {
-    href: '/documents/retirement-pay',
-    icon: '💰',
-    title: '퇴직금 정산서',
-    description: '1년 이상 근속 필수',
-    badge: '퇴사',
-  },
-  {
-    href: '/documents/annual-leave-notice',
-    icon: '📢',
-    title: '연차촉진 통보서',
-    description: '미사용 연차 촉진',
-    badge: '퇴사',
-  },
-  {
-    href: '/payslip',
-    icon: '💵',
-    title: '급여명세서',
-    description: '월별 급여 내역 발급',
-  },
-  {
-    href: '/wage-ledger',
-    icon: '📊',
-    title: '임금대장',
-    description: '급여 지급 기록 관리',
-  },
-  {
-    href: '/work-rules',
-    icon: '📖',
-    title: '취업규칙',
-    description: '10인 이상 사업장 필수',
-  },
-  {
-    href: '/settings',
-    icon: '⚙️',
-    title: '회사 정보 설정',
-    description: '사업자 정보 관리',
+    id: 'rules', label: '취업규칙', icon: '📖', bg: '#f5f3ff',
+    items: [
+      { href: '/work-rules', title: '취업규칙 (98조항)' },
+    ],
   },
 ];
 
@@ -136,9 +75,7 @@ export default function Home() {
 
   useEffect(() => {
     const company = loadCompanyInfo();
-    if (company) {
-      setCompanyName(company.name);
-    }
+    if (company) setCompanyName(company.name);
     setEmployees(loadEmployees());
     setIsLoaded(true);
   }, []);
@@ -146,149 +83,150 @@ export default function Home() {
   const activeEmployees = employees.filter(e => e.status === 'active');
   const fulltimeCount = activeEmployees.filter(e => e.employmentType === 'fulltime').length;
   const parttimeCount = activeEmployees.filter(e => e.employmentType === 'parttime').length;
-  
   const totalMonthlySalary = activeEmployees.reduce((sum, emp) => {
     if (emp.salary.type === 'monthly') {
-      return sum + emp.salary.baseSalary + emp.salary.mealAllowance + 
+      return sum + emp.salary.baseSalary + emp.salary.mealAllowance +
              emp.salary.carAllowance + emp.salary.childcareAllowance;
     }
     return sum + (emp.salary.hourlyWage || 0) * emp.workCondition.weeklyHours * 4;
   }, 0);
-
-  const today = new Date();
-  const currentMonth = `${today.getMonth() + 1}월`;
+  const currentMonth = `${new Date().getMonth() + 1}월`;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
-      {/* Header */}
-      <header className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="relative w-8 h-8">
-            <Image 
-              src="/logo.png" 
-              alt="노무뚝딱" 
-              fill
-              className="object-contain"
-            />
-          </div>
-          <div>
-            <h1 className="heading-lg">노무뚝딱</h1>
-            <p className="text-sm text-[var(--text-muted)]">노무서류 관리 시스템</p>
-          </div>
-        </div>
-        {companyName && (
-          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border)] rounded-md">
-            <span className="text-sm font-medium">{companyName}</span>
-          </div>
-        )}
-      </header>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 animate-fade-in">
 
-      {/* Alert: Company Info Required */}
+      {/* First-time visitor */}
       {isLoaded && !companyName && (
-        <div className="alert alert-warning mb-6">
-          <span className="text-lg">⚠️</span>
-          <div>
-            <p className="font-medium text-sm">회사 정보가 등록되지 않았습니다</p>
-            <p className="text-sm opacity-80 mt-0.5">
-              <Link href="/settings" className="underline hover:no-underline">설정</Link>에서 
-              회사 정보를 먼저 입력해 주세요.
-            </p>
-          </div>
-        </div>
+        <>
+          {/* Hero */}
+          <section className="mb-6 rounded-2xl overflow-hidden" style={{
+            background: 'linear-gradient(135deg, #0f2744 0%, #1e3a5f 50%, #234e82 100%)',
+          }}>
+            <div className="px-6 py-10 sm:px-10 sm:py-14 text-white text-center">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium mb-6"
+                style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                2026년 최신 노동법 반영
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold mb-3" style={{ letterSpacing: '-0.5px', lineHeight: 1.3 }}>
+                노무서류 관리,<br />노무뚝딱으로 시작하세요
+              </h1>
+              <p className="text-sm sm:text-base opacity-80 mb-8 max-w-md mx-auto leading-relaxed">
+                직원 한 번 등록하면 계약서부터 퇴직금까지<br className="hidden sm:block" />
+                18종 노무서류가 자동으로 완성됩니다.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Link
+                  href="/settings"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold shadow-lg hover:shadow-xl transition-all hover:brightness-110"
+                  style={{ background: '#c9a028', color: '#0f2744' }}
+                >
+                  회사 정보 등록하기 →
+                </Link>
+                <a
+                  href="/landing-page.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 text-white border border-white/25 rounded-lg text-sm font-medium hover:bg-white/20 transition-colors"
+                >
+                  상세 소개 보기
+                </a>
+              </div>
+            </div>
+          </section>
+
+          {/* Quick Start Steps */}
+          <section className="mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { step: 1, title: '회사 정보 설정', desc: '사업자번호·대표자·주소 입력', link: '/settings' },
+                { step: 2, title: '직원 등록', desc: '급여 최적화로 절세 효과', link: '/employees' },
+                { step: 3, title: '서류 작성 · 출력', desc: '직원 선택 → 자동 완성 → PDF' },
+              ].map((s) => (
+                <div key={s.step} className="flex items-start gap-3 p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
+                  <span className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                    style={{ background: '#1e3a5f' }}>
+                    {s.step}
+                  </span>
+                  <div>
+                    <p className="font-semibold text-sm text-[var(--text)]">{s.title}</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">{s.desc}</p>
+                    {s.link && (
+                      <Link href={s.link} className="text-xs font-medium mt-1.5 inline-block text-[#2563eb] hover:underline">
+                        바로가기 →
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
       )}
 
-      {/* Stats Dashboard */}
-      {isLoaded && (
-        <section className="mb-8">
-          <h2 className="heading-sm mb-4 flex items-center gap-2">
-            <span className="icon-box icon-box-primary">📊</span>
-            관리 현황
-          </h2>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="stat-card">
-              <div className="flex items-center justify-between mb-2">
-                <span className="stat-icon bg-blue-50 text-blue-600">👥</span>
-              </div>
-              <p className="stat-value">{activeEmployees.length}</p>
-              <p className="stat-label">등록 직원</p>
+      {/* Returning visitor dashboard */}
+      {isLoaded && companyName && (
+        <section className="mb-6">
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border)]">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
+              style={{ background: 'rgba(30,58,95,0.08)' }}>
+              🏢
             </div>
-            
-            <div className="stat-card">
-              <div className="flex items-center justify-between mb-2">
-                <span className="stat-icon bg-green-50 text-green-600">📋</span>
+            <div className="min-w-0">
+              <h1 className="text-base font-bold text-[var(--text)] truncate">{companyName}</h1>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-muted)]">
+                {activeEmployees.length > 0 ? (
+                  <>
+                    <span>직원 {activeEmployees.length}명 (정규 {fulltimeCount} / 파트 {parttimeCount})</span>
+                    {totalMonthlySalary > 0 && (
+                      <span>{currentMonth} 예상 급여 {formatCurrency(totalMonthlySalary)}</span>
+                    )}
+                  </>
+                ) : (
+                  <span>직원을 등록하면 서류가 자동으로 완성됩니다</span>
+                )}
+                <span className="text-[var(--text-light)]">📌 2026 최저시급 {formatCurrency(MINIMUM_WAGE.hourly)}</span>
               </div>
-              <p className="stat-value">
-                <span>{fulltimeCount}</span>
-                <span className="text-[var(--text-light)] text-lg mx-1">/</span>
-                <span className="text-lg text-[var(--text-muted)]">{parttimeCount}</span>
-              </p>
-              <p className="stat-label">정규 / 파트</p>
-            </div>
-            
-            <div className="stat-card">
-              <div className="flex items-center justify-between mb-2">
-                <span className="stat-icon bg-amber-50 text-amber-600">💵</span>
-              </div>
-              <p className="stat-value text-xl">{formatCurrency(totalMonthlySalary)}</p>
-              <p className="stat-label">{currentMonth} 예상 급여</p>
-            </div>
-            
-            <div className="stat-card border-l-4 border-l-[var(--primary)]">
-              <div className="flex items-center justify-between mb-2">
-                <span className="stat-icon bg-slate-100 text-slate-600">📌</span>
-                <span className="badge badge-primary">2026</span>
-              </div>
-              <p className="stat-value text-xl">{formatCurrency(MINIMUM_WAGE.hourly)}</p>
-              <p className="stat-label">최저시급</p>
             </div>
           </div>
         </section>
       )}
 
-      {/* Services */}
+      {/* Services Grid */}
       <section className="mb-8">
-        <h2 className="heading-sm mb-4 flex items-center gap-2">
-          <span className="icon-box icon-box-primary">🗂️</span>
-          서비스
-        </h2>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {features.map((feature) => (
-            <Link 
-              key={feature.href} 
-              href={feature.href}
-              className="feature-card"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <span className="feature-card-icon">{feature.icon}</span>
-                {feature.badge && (
-                  <span className="badge badge-primary">{feature.badge}</span>
-                )}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {serviceCategories.map((cat) => (
+            <div key={cat.id} className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden hover:shadow-sm transition-shadow">
+              <div className="px-4 pt-4 pb-2 flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
+                  style={{ background: cat.bg }}>
+                  {cat.icon}
+                </span>
+                <span className="font-semibold text-sm text-[var(--text)]">{cat.label}</span>
               </div>
-              <h3 className="feature-card-title">{feature.title}</h3>
-              <p className="feature-card-desc">{feature.description}</p>
-            </Link>
+              <div className="px-3 pb-3">
+                {cat.items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[13px] text-[var(--text-muted)] hover:text-[var(--primary)] hover:bg-[var(--bg)] transition-colors"
+                  >
+                    <span className="w-1 h-1 rounded-full bg-current opacity-40 flex-shrink-0" />
+                    {item.title}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </section>
 
       {/* Employee List */}
       {isLoaded && activeEmployees.length > 0 && (
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="heading-sm flex items-center gap-2">
-              <span className="icon-box icon-box-success">👥</span>
-              직원 목록
-            </h2>
-            <Link 
-              href="/employees" 
-              className="btn btn-secondary btn-sm"
-            >
-              전체 보기
-            </Link>
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-[var(--text-muted)] tracking-wide">직원 목록</h2>
+            <Link href="/employees" className="btn btn-secondary btn-sm">전체 보기</Link>
           </div>
-          
           <div className="table-container">
             <table className="table-modern">
               <thead>
@@ -304,16 +242,14 @@ export default function Home() {
                   <tr key={emp.id}>
                     <td className="font-medium">{emp.info.name}</td>
                     <td>
-                      <span className={`badge ${
-                        emp.employmentType === 'fulltime' ? 'badge-primary' : 'badge-neutral'
-                      }`}>
+                      <span className={`badge ${emp.employmentType === 'fulltime' ? 'badge-primary' : 'badge-neutral'}`}>
                         {emp.employmentType === 'fulltime' ? '정규직' :
                          emp.employmentType === 'parttime' ? '파트타임' : '프리랜서'}
                       </span>
                     </td>
                     <td className="text-[var(--text-muted)]">{emp.department || '—'}</td>
                     <td className="text-right font-medium">
-                      {emp.salary.type === 'monthly' 
+                      {emp.salary.type === 'monthly'
                         ? formatCurrency(emp.salary.baseSalary + emp.salary.mealAllowance + emp.salary.carAllowance)
                         : `${formatCurrency(emp.salary.hourlyWage || 0)}/시간`
                       }
@@ -326,70 +262,23 @@ export default function Home() {
         </section>
       )}
 
-      {/* Quick Guide */}
-      <section className="mb-8">
-        <h2 className="heading-sm mb-4 flex items-center gap-2">
-          <span className="icon-box icon-box-warning">💡</span>
-          사용 가이드
-        </h2>
-        
-        <div className="card">
-          <div className="card-body">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {[
-                { step: 1, title: '회사 정보 등록', desc: '사업자 정보 입력', icon: '⚙️' },
-                { step: 2, title: '직원 등록', desc: '급여 설정 및 최적화', icon: '👥' },
-                { step: 3, title: '계약서 작성', desc: '자동 입력 활용', icon: '📋' },
-                { step: 4, title: '급여 관리', desc: '명세서 발급 및 대장 관리', icon: '💵' },
-              ].map((item, idx) => (
-                <div key={item.step} className="flex items-start gap-3">
-                  <span className={`step-number ${idx === 0 ? 'step-active' : 'step-pending'}`}>
-                    {item.step}
-                  </span>
-                  <div>
-                    <p className="font-medium text-sm">{item.title}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Legal Notice */}
-      <div className="alert alert-info mb-6">
-        <span className="text-lg">ℹ️</span>
-        <div className="text-sm">
-          <p className="font-medium">법적 고지</p>
-          <p className="opacity-80">본 서비스에서 제공하는 문서 양식은 참고용이며, 실제 법적 효력은 관할 기관 및 전문가 확인이 필요합니다.</p>
-        </div>
-      </div>
+      {/* Legal */}
+      <p className="text-[11px] text-center text-[var(--text-light)] mb-10 leading-relaxed">
+        본 서비스의 문서 양식은 참고용이며, 법적 효력은 관할 기관 및 전문가 확인이 필요합니다.
+      </p>
 
       {/* Footer */}
-      <footer className="footer">
-        <div className="flex items-center justify-center gap-3 mb-3">
-          <div className="relative w-5 h-5 opacity-60">
-            <Image 
-              src="/logo.png" 
-              alt="L-BIZ Partners" 
-              fill
-              className="object-contain"
-            />
+      <footer className="border-t border-[var(--border)] pt-8 pb-6">
+        <div className="flex flex-col items-center">
+          <div className="relative w-12 h-12 mb-2">
+            <Image src="/logo.png" alt="L-BIZ Partners" fill className="object-contain" />
           </div>
-          <span className="text-sm">엘비즈 파트너스</span>
-        </div>
-        <p className="text-xs text-[var(--text-light)] mb-2">
-          © 2026 노무뚝딱 · 노무서류 관리 시스템
-        </p>
-        <p className="text-xs">
-          <a 
-            href="mailto:sangsu0916@naver.com" 
-            className="text-[var(--text-muted)] hover:text-[var(--text)]"
-          >
+          <span className="text-sm font-bold" style={{ color: '#b8860b' }}>엘비즈 파트너스</span>
+          <span className="text-xs text-[var(--text-light)] mt-1">© 2026 노무뚝딱 · 노무서류 관리 시스템</span>
+          <a href="mailto:sangsu0916@naver.com" className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] mt-1">
             sangsu0916@naver.com
           </a>
-        </p>
+        </div>
       </footer>
     </div>
   );
