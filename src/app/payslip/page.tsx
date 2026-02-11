@@ -7,22 +7,127 @@ import { loadCompanyInfo, defaultCompanyInfo, formatCurrency, formatBusinessNumb
 import { getWorkingDays, MINIMUM_WAGE } from '@/lib/constants';
 import HelpGuide from '@/components/HelpGuide';
 
+// ============================================
+// 통상임금·통상시급 및 가산수당 자동 계산
+// 근거: 근로기준법 제56조, 시행령 제6조
+// ============================================
+
+/**
+ * 통상시급 계산
+ * - 월급제: 통상임금(월) ÷ 209시간
+ *   통상임금 = 기본급 + 고정·정기·일률적 수당 (직책수당, 근속수당 등)
+ *   209시간 = (주40h + 주휴8h) × 365 ÷ 7 ÷ 12
+ * - 시급제: 약정 시급
+ *
+ * 【통상임금 3요건】 (대법원 전원합의체 기준)
+ *  ① 정기성: 일정 간격으로 계속 지급
+ *  ② 일률성: 모든 근로자 또는 일정 조건 충족 시 전원 지급
+ *  ③ 고정성: 업적·성과 무관하게 확정 지급
+ *
+ * 포함: 기본급, 식대, 직책수당, 근속수당, 가족수당, 주택수당, 기술수당 등
+ * 제외: 연장·야간·휴일수당(사후계산), 성과급(변동), 실비변상 등
+ */
+function calcOrdinaryHourlyRate(
+  baseSalary: number,
+  ordinaryAllowances: number,
+  salaryType: 'monthly' | 'hourly',
+  hourlyWage?: number,
+): number {
+  if (salaryType === 'hourly' && hourlyWage) return hourlyWage;
+  return (baseSalary + ordinaryAllowances) / MINIMUM_WAGE.monthlyHours;
+}
+
+/** 통상임금에 포함되는 고정수당 합계 (식대 + 추가수당 중 ordinaryWage 항목) */
+function getOrdinaryAllowanceTotal(
+  earnings: Record<string, number>,
+  enabledKeys: readonly string[],
+): number {
+  const additionalOrdinary = enabledKeys.reduce((sum, key) => {
+    const item = ADDITIONAL_EARNINGS.find(e => e.key === key);
+    return item?.ordinaryWage ? sum + (earnings[key] || 0) : sum;
+  }, 0);
+  return (earnings.mealAllowance || 0) + additionalOrdinary;
+}
+
+/**
+ * 연장·야간·휴일 근로수당 자동 계산 (중복 가산 반영)
+ *
+ * 【법적 근거】
+ * - 근로기준법 제56조 (연장·야간 및 휴일 근로)
+ *   제1항: 연장근로 → 통상임금의 50% 이상 가산
+ *   제2항: 휴일근로 → 8h이내 50%, 8h초과 100% 가산
+ *   제3항: 야간근로(22시~06시) → 50% 이상 가산
+ * - 2018.3 근로기준법 개정: 휴일 8h초과 = +100% 명문화
+ * - 대법원 전원합의체 2018.6.21. 선고 2011다112391:
+ *   "휴일근로는 연장근로에 포함되지 않음" → 중복 할증 정리
+ *
+ * ※ 5인 미만 사업장은 제56조 미적용 (가산수당 지급의무 없음)
+ *
+ * ┌───────────────────────┬────────┬────────┐
+ * │ 근로 유형             │ 가산율 │ 합산   │
+ * ├───────────────────────┼────────┼────────┤
+ * │ 연장                  │ +50%   │ 1.5배  │
+ * │ 야간 (단독, 가산분)   │ +50%   │ 0.5배  │
+ * │ 연장+야간             │+50+50% │ 2.0배  │
+ * │ 휴일 8h이내           │ +50%   │ 1.5배  │
+ * │ 휴일 8h초과           │+100%   │ 2.0배  │
+ * │ 휴일(8h이내)+야간     │+50+50% │ 2.0배  │
+ * │ 휴일(8h초과)+야간     │+100+50%│ 2.5배  │ ← 최대
+ * └───────────────────────┴────────┴────────┘
+ */
+function calcOvertimeAllowances(
+  rate: number,
+  overtimeHours: number,
+  nightHours: number,
+  holidayHours: number,
+  overtimeNightHours: number,
+  holidayNightHours: number,
+) {
+  if (rate <= 0) return { overtime: 0, nightWork: 0, holidayWork: 0 };
+
+  // ── 연장근로수당 (중복 가산) ──
+  const otDay = Math.max(0, overtimeHours - overtimeNightHours);
+  const overtime = Math.round(
+    otDay * rate * 1.5 +                // 연장(주간): 1.5배
+    overtimeNightHours * rate * 2.0     // 연장+야간: 2.0배
+  );
+
+  // ── 야간근로수당 (단독 야간, 가산분만) ──
+  const nightWork = Math.round(nightHours * rate * 0.5);
+
+  // ── 휴일근로수당 (중복 가산) ──
+  const holNormal = Math.min(holidayHours, 8);
+  const holOver = Math.max(0, holidayHours - 8);
+  // 야간을 높은 배율(초과분)에 우선 배분
+  const nightInOver = Math.min(holidayNightHours, holOver);
+  const nightInNormal = Math.min(holidayNightHours - nightInOver, holNormal);
+  const holidayWork = Math.round(
+    (holNormal - nightInNormal) * rate * 1.5 +   // 휴일 8h이내: 1.5배
+    nightInNormal * rate * 2.0 +                  // 휴일 8h이내+야간: 2.0배
+    (holOver - nightInOver) * rate * 2.0 +        // 휴일 8h초과: 2.0배
+    nightInOver * rate * 2.5                      // 휴일 8h초과+야간: 2.5배 (최대)
+  );
+
+  return { overtime, nightWork, holidayWork };
+}
+
 // 추가 가능한 지급 항목 목록 (2026년 기준)
+// ordinaryWage: 통상임금에 포함되는 고정·정기·일률적 수당 여부
 const ADDITIONAL_EARNINGS = [
-  { key: 'fuelAllowance', label: '유류비', taxable: false, description: '업무용 차량 유류비 (비과세, 월 20만원 한도)' },
-  { key: 'carMaintenanceAllowance', label: '차량유지비', taxable: false, description: '업무용 차량 유지보수비 (비과세)' },
-  { key: 'childEducationAllowance', label: '자녀학자금', taxable: true, description: '자녀 교육비 지원' },
-  { key: 'childcareAllowance', label: '보육수당', taxable: false, description: '6세 이하 자녀 1인당 월 20만원 (2026년~)' },
-  { key: 'birthSupportAllowance', label: '출산지원금', taxable: false, description: '출산 후 2년 내 지급 시 전액 비과세' },
-  { key: 'positionAllowance', label: '직책수당', taxable: true, description: '직급/직책에 따른 수당' },
-  { key: 'tenureAllowance', label: '근속수당', taxable: true, description: '장기근속 보상' },
-  { key: 'familyAllowance', label: '가족수당', taxable: true, description: '부양가족 수당' },
-  { key: 'housingAllowance', label: '주택수당', taxable: true, description: '주거 지원비' },
-  { key: 'nightWorkAllowance', label: '야간근로수당', taxable: true, description: '22시~06시 근무' },
-  { key: 'holidayWorkAllowance', label: '휴일근로수당', taxable: true, description: '휴일 근무 수당' },
-  { key: 'researchAllowance', label: '연구활동비', taxable: false, description: '연구원 한정 (비과세, 월 20만원 한도)' },
-  { key: 'communicationAllowance', label: '통신비', taxable: true, description: '업무용 통신비 지원' },
-  { key: 'welfareAllowance', label: '복리후생비', taxable: true, description: '기타 복리후생' },
+  { key: 'fuelAllowance', label: '유류비', taxable: false, ordinaryWage: false, description: '업무용 차량 유류비 (비과세, 월 20만원 한도)' },
+  { key: 'carMaintenanceAllowance', label: '차량유지비', taxable: false, ordinaryWage: false, description: '업무용 차량 유지보수비 (비과세)' },
+  { key: 'childEducationAllowance', label: '자녀학자금', taxable: true, ordinaryWage: false, description: '자녀 교육비 지원' },
+  { key: 'childcareAllowance', label: '보육수당', taxable: false, ordinaryWage: false, description: '6세 이하 자녀 1인당 월 20만원 (2026년~)' },
+  { key: 'birthSupportAllowance', label: '출산지원금', taxable: false, ordinaryWage: false, description: '출산 후 2년 내 지급 시 전액 비과세' },
+  { key: 'positionAllowance', label: '직책수당', taxable: true, ordinaryWage: true, description: '직급/직책에 따른 수당' },
+  { key: 'tenureAllowance', label: '근속수당', taxable: true, ordinaryWage: true, description: '장기근속 보상' },
+  { key: 'familyAllowance', label: '가족수당', taxable: true, ordinaryWage: true, description: '부양가족 수당' },
+  { key: 'housingAllowance', label: '주택수당', taxable: true, ordinaryWage: true, description: '주거 지원비' },
+  { key: 'nightWorkAllowance', label: '야간근로수당', taxable: true, ordinaryWage: false, description: '22시~06시 근무' },
+  { key: 'holidayWorkAllowance', label: '휴일근로수당', taxable: true, ordinaryWage: false, description: '휴일 근무 수당' },
+  { key: 'researchAllowance', label: '연구활동비', taxable: false, ordinaryWage: false, description: '연구원 한정 (비과세, 월 20만원 한도)' },
+  { key: 'communicationAllowance', label: '통신비', taxable: true, ordinaryWage: false, description: '업무용 통신비 지원' },
+  { key: 'welfareAllowance', label: '복리후생비', taxable: true, ordinaryWage: false, description: '기타 복리후생' },
 ] as const;
 
 type AdditionalEarningKey = typeof ADDITIONAL_EARNINGS[number]['key'];
@@ -40,8 +145,10 @@ interface PayslipData {
     workDays: number;           // 근로일수 (필수)
     totalWorkHours: number;     // 총 근로시간수 (필수)
     overtimeHours: number;      // 연장근로시간
-    nightHours: number;         // 야간근로시간 (22시~06시)
+    nightHours: number;         // 야간근로시간 (단독, 연장·휴일에 포함되지 않는 시간)
     holidayHours: number;       // 휴일근로시간
+    overtimeNightHours: number; // 연장근로 중 야간시간 (중복 가산)
+    holidayNightHours: number;  // 휴일근로 중 야간시간 (중복 가산)
     salaryType: 'monthly' | 'hourly';  // 임금계산방법
     hourlyWage?: number;        // 시급 (시급제인 경우)
   };
@@ -90,6 +197,8 @@ const defaultPayslip: PayslipData = {
     overtimeHours: 0,
     nightHours: 0,
     holidayHours: 0,
+    overtimeNightHours: 0,
+    holidayNightHours: 0,
     salaryType: 'monthly',
   },
   earnings: {
@@ -149,6 +258,31 @@ export default function PayslipPage() {
     };
   }, []);
 
+  // 통상시급을 현재 state에서 계산하는 헬퍼
+  const getRate = useCallback((prev: PayslipData) => {
+    const ordAllow = getOrdinaryAllowanceTotal(prev.earnings, prev.enabledAdditionalEarnings);
+    return calcOrdinaryHourlyRate(prev.earnings.baseSalary, ordAllow, prev.workInfo.salaryType, prev.workInfo.hourlyWage);
+  }, []);
+
+  // 근로시간 필드 변경 → workInfo + 수당 한번에 갱신
+  const updateWorkHoursAndAllowances = useCallback((
+    field: 'overtimeHours' | 'nightHours' | 'holidayHours' | 'overtimeNightHours' | 'holidayNightHours',
+    value: number,
+  ) => {
+    setPayslip(prev => {
+      const wi = { ...prev.workInfo, [field]: value };
+      // 야간 중복시간이 원래 시간보다 클 수 없도록 보정
+      wi.overtimeNightHours = Math.min(wi.overtimeNightHours, wi.overtimeHours);
+      wi.holidayNightHours = Math.min(wi.holidayNightHours, wi.holidayHours);
+      const ordAllow = getOrdinaryAllowanceTotal(prev.earnings, prev.enabledAdditionalEarnings);
+      const rate = calcOrdinaryHourlyRate(prev.earnings.baseSalary, ordAllow, wi.salaryType, wi.hourlyWage);
+      const { overtime, nightWork, holidayWork } = calcOvertimeAllowances(
+        rate, wi.overtimeHours, wi.nightHours, wi.holidayHours, wi.overtimeNightHours, wi.holidayNightHours,
+      );
+      return { ...prev, workInfo: wi, earnings: { ...prev.earnings, overtime, nightWork, holidayWork } };
+    });
+  }, [getRate]);
+
   // 직원 선택 시 정보 자동 입력
   const handleEmployeeSelect = (employeeId: string) => {
     setSelectedEmployeeId(employeeId);
@@ -188,22 +322,32 @@ export default function PayslipPage() {
     }));
   };
 
-  // 추가 항목 토글
+  // 추가 항목 토글 (통상임금 포함 항목이면 수당 재계산)
   const toggleAdditionalEarning = (key: AdditionalEarningKey) => {
     setPayslip(prev => {
       const isEnabled = prev.enabledAdditionalEarnings.includes(key);
-      return {
-        ...prev,
-        enabledAdditionalEarnings: isEnabled
-          ? prev.enabledAdditionalEarnings.filter(k => k !== key)
-          : [...prev.enabledAdditionalEarnings, key],
-        earnings: isEnabled
-          ? { ...prev.earnings, [key]: 0 }
-          : prev.earnings,
-      };
+      const newEnabled = isEnabled
+        ? prev.enabledAdditionalEarnings.filter(k => k !== key)
+        : [...prev.enabledAdditionalEarnings, key];
+      const newEarnings = isEnabled ? { ...prev.earnings, [key]: 0 } : prev.earnings;
+      const item = ADDITIONAL_EARNINGS.find(e => e.key === key);
+      const wi = prev.workInfo;
+      const hasExtraHours = wi.overtimeHours > 0 || wi.nightHours > 0 || wi.holidayHours > 0;
+      if (item?.ordinaryWage && hasExtraHours) {
+        const ordA = getOrdinaryAllowanceTotal(newEarnings, newEnabled);
+        const r = calcOrdinaryHourlyRate(newEarnings.baseSalary, ordA, wi.salaryType, wi.hourlyWage);
+        const { overtime, nightWork, holidayWork } = calcOvertimeAllowances(
+          r, wi.overtimeHours, wi.nightHours, wi.holidayHours, wi.overtimeNightHours, wi.holidayNightHours,
+        );
+        return { ...prev, enabledAdditionalEarnings: newEnabled, earnings: { ...newEarnings, overtime, nightWork, holidayWork } };
+      }
+      return { ...prev, enabledAdditionalEarnings: newEnabled, earnings: newEarnings };
     });
   };
 
+  // 통상임금 관련 계산값 (렌더링 시 사용)
+  const ordinaryAllowances = getOrdinaryAllowanceTotal(payslip.earnings, payslip.enabledAdditionalEarnings);
+  const hourlyRate = calcOrdinaryHourlyRate(payslip.earnings.baseSalary, ordinaryAllowances, payslip.workInfo.salaryType, payslip.workInfo.hourlyWage);
   // 4대보험 자동 계산 (render-time)
   const deductions = (() => {
     if (!autoCalculate) return payslip.deductions;
@@ -249,10 +393,22 @@ export default function PayslipPage() {
   };
 
   const updateEarnings = (field: string, value: number) => {
-    setPayslip(prev => ({
-      ...prev,
-      earnings: { ...prev.earnings, [field]: value }
-    }));
+    setPayslip(prev => {
+      const newEarnings = { ...prev.earnings, [field]: value };
+      const wi = prev.workInfo;
+      const hasExtraHours = wi.overtimeHours > 0 || wi.nightHours > 0 || wi.holidayHours > 0;
+      // 통상임금 포함 항목(식대, ordinaryWage 수당) 변경 시 가산수당 재계산
+      const isOrdinaryField = field === 'mealAllowance' || ADDITIONAL_EARNINGS.some(e => e.key === field && e.ordinaryWage);
+      if (isOrdinaryField && hasExtraHours) {
+        const ordA = getOrdinaryAllowanceTotal(newEarnings, prev.enabledAdditionalEarnings);
+        const r = calcOrdinaryHourlyRate(newEarnings.baseSalary, ordA, wi.salaryType, wi.hourlyWage);
+        const { overtime, nightWork, holidayWork } = calcOvertimeAllowances(
+          r, wi.overtimeHours, wi.nightHours, wi.holidayHours, wi.overtimeNightHours, wi.holidayNightHours,
+        );
+        return { ...prev, earnings: { ...newEarnings, overtime, nightWork, holidayWork } };
+      }
+      return { ...prev, earnings: newEarnings };
+    });
   };
 
   const updateDeductions = (field: keyof PayslipData['deductions'], value: number) => {
@@ -433,10 +589,17 @@ export default function PayslipPage() {
                     const newType = e.target.value as 'monthly' | 'hourly';
                     const emp = employees.find(emp => emp.id === selectedEmployeeId);
                     const work = calcWorkInfo(payslip.year, payslip.month, emp, newType);
-                    setPayslip(prev => ({
-                      ...prev,
-                      workInfo: { ...prev.workInfo, salaryType: newType, totalWorkHours: work.hours }
-                    }));
+                    setPayslip(prev => {
+                      const wi = { ...prev.workInfo, salaryType: newType, totalWorkHours: work.hours };
+                      const hasExtraHours = wi.overtimeHours > 0 || wi.nightHours > 0 || wi.holidayHours > 0;
+                      if (!hasExtraHours) return { ...prev, workInfo: wi };
+                      const ordA = getOrdinaryAllowanceTotal(prev.earnings, prev.enabledAdditionalEarnings);
+                      const r = calcOrdinaryHourlyRate(prev.earnings.baseSalary, ordA, newType, wi.hourlyWage);
+                      const { overtime, nightWork, holidayWork } = calcOvertimeAllowances(
+                        r, wi.overtimeHours, wi.nightHours, wi.holidayHours, wi.overtimeNightHours, wi.holidayNightHours,
+                      );
+                      return { ...prev, workInfo: wi, earnings: { ...prev.earnings, overtime, nightWork, holidayWork } };
+                    });
                   }}
                 >
                   <option value="monthly">월급제</option>
@@ -477,10 +640,20 @@ export default function PayslipPage() {
                     className="input-field"
                     placeholder="10320"
                     value={payslip.workInfo.hourlyWage || ''}
-                    onChange={(e) => setPayslip(prev => ({ 
-                      ...prev, 
-                      workInfo: { ...prev.workInfo, hourlyWage: parseInt(e.target.value) || 0 }
-                    }))}
+                    onChange={(e) => {
+                      const newWage = parseInt(e.target.value) || 0;
+                      setPayslip(prev => {
+                        const wi = { ...prev.workInfo, hourlyWage: newWage };
+                        const hasExtraHours = wi.overtimeHours > 0 || wi.nightHours > 0 || wi.holidayHours > 0;
+                        if (!hasExtraHours) return { ...prev, workInfo: wi };
+                        const ordA = getOrdinaryAllowanceTotal(prev.earnings, prev.enabledAdditionalEarnings);
+                        const r = calcOrdinaryHourlyRate(prev.earnings.baseSalary, ordA, wi.salaryType, newWage);
+                        const { overtime, nightWork, holidayWork } = calcOvertimeAllowances(
+                          r, wi.overtimeHours, wi.nightHours, wi.holidayHours, wi.overtimeNightHours, wi.holidayNightHours,
+                        );
+                        return { ...prev, workInfo: wi, earnings: { ...prev.earnings, overtime, nightWork, holidayWork } };
+                      });
+                    }}
                   />
                 </div>
               )}
@@ -494,12 +667,23 @@ export default function PayslipPage() {
                   className="input-field"
                   placeholder="0"
                   value={payslip.workInfo.overtimeHours || ''}
-                  onChange={(e) => setPayslip(prev => ({ 
-                    ...prev, 
-                    workInfo: { ...prev.workInfo, overtimeHours: parseInt(e.target.value) || 0 }
-                  }))}
+                  onChange={(e) => updateWorkHoursAndAllowances('overtimeHours', parseInt(e.target.value) || 0)}
                 />
                 <p className="text-xs text-zinc-400 mt-1">주 40시간 초과분</p>
+                {payslip.workInfo.overtimeHours > 0 && (
+                  <div className="mt-2">
+                    <label className="text-xs text-amber-700 font-medium">이 중 야간</label>
+                    <input
+                      type="number"
+                      className="input-field mt-1 !text-sm !py-1"
+                      placeholder="0"
+                      max={payslip.workInfo.overtimeHours}
+                      value={payslip.workInfo.overtimeNightHours || ''}
+                      onChange={(e) => updateWorkHoursAndAllowances('overtimeNightHours', parseInt(e.target.value) || 0)}
+                    />
+                    <p className="text-xs text-amber-600 mt-0.5">연장+야간 → 2.0배</p>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="input-label">야간근로시간</label>
@@ -508,12 +692,9 @@ export default function PayslipPage() {
                   className="input-field"
                   placeholder="0"
                   value={payslip.workInfo.nightHours || ''}
-                  onChange={(e) => setPayslip(prev => ({ 
-                    ...prev, 
-                    workInfo: { ...prev.workInfo, nightHours: parseInt(e.target.value) || 0 }
-                  }))}
+                  onChange={(e) => updateWorkHoursAndAllowances('nightHours', parseInt(e.target.value) || 0)}
                 />
-                <p className="text-xs text-zinc-400 mt-1">22시~06시</p>
+                <p className="text-xs text-zinc-400 mt-1">22시~06시 (단독 야간, 가산분 0.5배)</p>
               </div>
               <div>
                 <label className="input-label">휴일근로시간</label>
@@ -522,14 +703,53 @@ export default function PayslipPage() {
                   className="input-field"
                   placeholder="0"
                   value={payslip.workInfo.holidayHours || ''}
-                  onChange={(e) => setPayslip(prev => ({ 
-                    ...prev, 
-                    workInfo: { ...prev.workInfo, holidayHours: parseInt(e.target.value) || 0 }
-                  }))}
+                  onChange={(e) => updateWorkHoursAndAllowances('holidayHours', parseInt(e.target.value) || 0)}
                 />
-                <p className="text-xs text-zinc-400 mt-1">휴일 근무</p>
+                <p className="text-xs text-zinc-400 mt-1">휴일 근무 (8h이내 1.5배, 초과 2.0배)</p>
+                {payslip.workInfo.holidayHours > 0 && (
+                  <div className="mt-2">
+                    <label className="text-xs text-amber-700 font-medium">이 중 야간</label>
+                    <input
+                      type="number"
+                      className="input-field mt-1 !text-sm !py-1"
+                      placeholder="0"
+                      max={payslip.workInfo.holidayHours}
+                      value={payslip.workInfo.holidayNightHours || ''}
+                      onChange={(e) => updateWorkHoursAndAllowances('holidayNightHours', parseInt(e.target.value) || 0)}
+                    />
+                    <p className="text-xs text-amber-600 mt-0.5">최대 2.5배 (8h초과+야간)</p>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* 통상시급 안내 (기본급이 입력된 경우) */}
+            {payslip.earnings.baseSalary > 0 && (
+              <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                <p className="text-sm text-amber-800">
+                  <span className="font-medium">통상시급:</span>{' '}
+                  {formatCurrency(Math.round(hourlyRate))}
+                  <span className="text-xs text-amber-600 ml-2">
+                    ({payslip.workInfo.salaryType === 'monthly'
+                      ? ordinaryAllowances > 0
+                        ? `(기본급 ${formatCurrency(payslip.earnings.baseSalary)} + 고정수당 ${formatCurrency(ordinaryAllowances)}) ÷ ${MINIMUM_WAGE.monthlyHours}h`
+                        : `기본급 ${formatCurrency(payslip.earnings.baseSalary)} ÷ ${MINIMUM_WAGE.monthlyHours}h`
+                      : `시급 ${formatCurrency(payslip.workInfo.hourlyWage || 0)}`})
+                  </span>
+                </p>
+                <p className="text-xs text-amber-600 mt-1">
+                  통상임금 = 정기성·일률성·고정성을 갖춘 임금 (기본급 + 식대 + 직책·근속·가족·주택수당 등)
+                </p>
+                {(payslip.workInfo.overtimeHours > 0 || payslip.workInfo.nightHours > 0 || payslip.workInfo.holidayHours > 0) && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    연장·야간·휴일 수당 자동 계산 (근로기준법 제56조, 2018년 개정법 기준, 최대 2.5배)
+                  </p>
+                )}
+                <p className="text-xs text-zinc-400 mt-1">
+                  * 5인 미만 사업장은 가산수당 지급의무 없음 (근로기준법 제11조)
+                </p>
+              </div>
+            )}
           </div>
 
           {/* 지급 내역 - 기본 항목 */}
@@ -543,35 +763,83 @@ export default function PayslipPage() {
                   className="input-field"
                   placeholder="3000000"
                   value={payslip.earnings.baseSalary || ''}
-                  onChange={(e) => updateEarnings('baseSalary', parseInt(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const newBase = parseInt(e.target.value) || 0;
+                    setPayslip(prev => {
+                      const wi = prev.workInfo;
+                      const hasExtraHours = wi.overtimeHours > 0 || wi.nightHours > 0 || wi.holidayHours > 0;
+                      if (!hasExtraHours) {
+                        return { ...prev, earnings: { ...prev.earnings, baseSalary: newBase } };
+                      }
+                      const ordA = getOrdinaryAllowanceTotal({ ...prev.earnings, baseSalary: newBase }, prev.enabledAdditionalEarnings);
+                      const r = calcOrdinaryHourlyRate(newBase, ordA, wi.salaryType, wi.hourlyWage);
+                      const { overtime, nightWork, holidayWork } = calcOvertimeAllowances(
+                        r, wi.overtimeHours, wi.nightHours, wi.holidayHours, wi.overtimeNightHours, wi.holidayNightHours,
+                      );
+                      return { ...prev, earnings: { ...prev.earnings, baseSalary: newBase, overtime, nightWork, holidayWork } };
+                    });
+                  }}
                 />
               </div>
               <div>
-                <label className="input-label">연장근로수당</label>
+                <label className="input-label">
+                  연장근로수당
+                  {payslip.workInfo.overtimeHours > 0 && <span className="ml-1 text-xs text-blue-500 font-normal">(자동계산)</span>}
+                </label>
                 <input
                   type="number"
                   className="input-field"
                   value={payslip.earnings.overtime || ''}
                   onChange={(e) => updateEarnings('overtime', parseInt(e.target.value) || 0)}
                 />
+                {payslip.workInfo.overtimeHours > 0 && payslip.earnings.baseSalary > 0 && (
+                  <p className="text-xs text-blue-500 mt-1">
+                    {payslip.workInfo.overtimeNightHours > 0
+                      ? `${formatCurrency(Math.round(hourlyRate))}/h × (${payslip.workInfo.overtimeHours - payslip.workInfo.overtimeNightHours}h×1.5 + ${payslip.workInfo.overtimeNightHours}h×2.0)`
+                      : `${formatCurrency(Math.round(hourlyRate))}/h × 1.5 × ${payslip.workInfo.overtimeHours}h`}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="input-label">야간근로수당</label>
+                <label className="input-label">
+                  야간근로수당
+                  {payslip.workInfo.nightHours > 0 && <span className="ml-1 text-xs text-blue-500 font-normal">(자동계산)</span>}
+                </label>
                 <input
                   type="number"
                   className="input-field"
                   value={payslip.earnings.nightWork || ''}
                   onChange={(e) => updateEarnings('nightWork', parseInt(e.target.value) || 0)}
                 />
+                {payslip.workInfo.nightHours > 0 && payslip.earnings.baseSalary > 0 && (
+                  <p className="text-xs text-blue-500 mt-1">
+                    {formatCurrency(Math.round(hourlyRate))}/h × 0.5 × {payslip.workInfo.nightHours}h (단독 야간 가산)
+                  </p>
+                )}
               </div>
               <div>
-                <label className="input-label">휴일근로수당</label>
+                <label className="input-label">
+                  휴일근로수당
+                  {payslip.workInfo.holidayHours > 0 && <span className="ml-1 text-xs text-blue-500 font-normal">(자동계산)</span>}
+                </label>
                 <input
                   type="number"
                   className="input-field"
                   value={payslip.earnings.holidayWork || ''}
                   onChange={(e) => updateEarnings('holidayWork', parseInt(e.target.value) || 0)}
                 />
+                {payslip.workInfo.holidayHours > 0 && payslip.earnings.baseSalary > 0 && (
+                  <p className="text-xs text-blue-500 mt-1">
+                    {(() => {
+                      const hh = payslip.workInfo.holidayHours;
+                      const hn = payslip.workInfo.holidayNightHours;
+                      const rateStr = formatCurrency(Math.round(hourlyRate));
+                      if (hn > 0) return `${rateStr}/h × 휴일${hh}h (야간${hn}h 중복, 최대 2.5배)`;
+                      if (hh <= 8) return `${rateStr}/h × 1.5 × ${hh}h`;
+                      return `${rateStr}/h × (8h×1.5 + ${hh - 8}h×2.0)`;
+                    })()}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="input-label">상여금</label>
@@ -584,8 +852,9 @@ export default function PayslipPage() {
               </div>
               <div>
                 <label className="input-label">
-                  식대 
+                  식대
                   <span className="ml-1 text-xs text-emerald-600 font-normal">(비과세)</span>
+                  <span className="ml-1 text-xs text-amber-600 font-normal">◆통상</span>
                 </label>
                 <input
                   type="number"
@@ -657,12 +926,16 @@ export default function PayslipPage() {
                         {!item.taxable && (
                           <span className="ml-1 text-xs text-emerald-600">✓</span>
                         )}
+                        {item.ordinaryWage && (
+                          <span className="ml-1 text-xs text-amber-600">◆</span>
+                        )}
                       </span>
                     </label>
                   ))}
                 </div>
                 <p className="text-xs text-zinc-400 mt-3">
-                  <span className="text-emerald-600">✓</span> = 비과세 항목 (4대보험 기준소득 제외)
+                  <span className="text-emerald-600">✓</span> = 비과세 항목
+                  <span className="ml-3 text-amber-600">◆</span> = 통상임금 포함 (시급 산정 기준)
                 </p>
               </div>
             )}
@@ -848,25 +1121,43 @@ function PayslipPreview({ payslip }: { payslip: PayslipData }) {
         : `시급 ${formatCurrency(payslip.workInfo.hourlyWage || 0)} × ${payslip.workInfo.totalWorkHours}h`
     },
   ];
+  const prevOrdAllow = getOrdinaryAllowanceTotal(payslip.earnings, payslip.enabledAdditionalEarnings);
+  const previewHourlyRate = calcOrdinaryHourlyRate(payslip.earnings.baseSalary, prevOrdAllow, payslip.workInfo.salaryType, payslip.workInfo.hourlyWage);
+  const previewHourlyStr = formatCurrency(Math.round(previewHourlyRate));
+
   if (payslip.earnings.overtime > 0) {
-    earningItems.push({ 
-      label: '연장근로수당', 
+    const otDay = payslip.workInfo.overtimeHours - payslip.workInfo.overtimeNightHours;
+    const otNight = payslip.workInfo.overtimeNightHours;
+    earningItems.push({
+      label: '연장근로수당',
       amount: payslip.earnings.overtime,
-      calcMethod: `${payslip.workInfo.overtimeHours}시간 × 통상시급 × 1.5`
+      calcMethod: otNight > 0
+        ? `${otDay}h×1.5 + ${otNight}h×2.0 (야간중복)`
+        : `${payslip.workInfo.overtimeHours}h × ${previewHourlyStr} × 1.5`
     });
   }
   if (payslip.earnings.nightWork && payslip.earnings.nightWork > 0) {
-    earningItems.push({ 
-      label: '야간근로수당', 
+    earningItems.push({
+      label: '야간근로수당',
       amount: payslip.earnings.nightWork,
-      calcMethod: `${payslip.workInfo.nightHours}시간 × 통상시급 × 0.5`
+      calcMethod: `${payslip.workInfo.nightHours}h × ${previewHourlyStr} × 0.5`
     });
   }
   if (payslip.earnings.holidayWork && payslip.earnings.holidayWork > 0) {
-    earningItems.push({ 
-      label: '휴일근로수당', 
+    const hh = payslip.workInfo.holidayHours;
+    const hn = payslip.workInfo.holidayNightHours;
+    let holMethod: string;
+    if (hn > 0) {
+      holMethod = `휴일 ${hh}h (야간 ${hn}h 중복, 최대 2.5배)`;
+    } else if (hh <= 8) {
+      holMethod = `${hh}h × ${previewHourlyStr} × 1.5`;
+    } else {
+      holMethod = `8h×1.5 + ${hh - 8}h×2.0`;
+    }
+    earningItems.push({
+      label: '휴일근로수당',
       amount: payslip.earnings.holidayWork,
-      calcMethod: `${payslip.workInfo.holidayHours}시간 × 통상시급 × 1.5`
+      calcMethod: holMethod,
     });
   }
   if (payslip.earnings.bonus > 0) {
