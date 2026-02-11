@@ -1,10 +1,6 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
+'use client';
 
-export const metadata: Metadata = {
-  title: '노무뚝딱 - 중소기업 노무서류 관리 시스템',
-  description: '근로계약서, 급여명세서, 임금대장, 취업규칙부터 노무서류 10종까지. 입사부터 퇴사까지 필요한 모든 노무서류를 쉽고 빠르게 만드세요.',
-};
+import Link from 'next/link';
 
 export default function About() {
   return (
