@@ -1265,13 +1265,13 @@ export default function PayslipPage() {
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-lg p-8">
-          <PayslipPreview payslip={{ ...payslip, deductions }} />
+          <PayslipPreview payslip={{ ...payslip, deductions }} enableOvertimeAllowances={enableOvertimeAllowances} />
         </div>
       )}
 
       <div className="hidden">
         <div ref={printRef}>
-          <PayslipPreview payslip={{ ...payslip, deductions }} />
+          <PayslipPreview payslip={{ ...payslip, deductions }} enableOvertimeAllowances={enableOvertimeAllowances} />
         </div>
       </div>
     </div>
@@ -1288,7 +1288,7 @@ function calculateIncomeTax(monthlyIncome: number): number {
   return Math.round(2081400 + (monthlyIncome - 8700000) * 0.38);
 }
 
-function PayslipPreview({ payslip }: { payslip: PayslipData }) {
+function PayslipPreview({ payslip, enableOvertimeAllowances }: { payslip: PayslipData; enableOvertimeAllowances: boolean }) {
   // 총액 계산
   const additionalTotal = payslip.enabledAdditionalEarnings.reduce(
     (sum, key) => sum + (payslip.earnings[key] || 0), 0
@@ -1320,34 +1320,41 @@ function PayslipPreview({ payslip }: { payslip: PayslipData }) {
   const previewHourlyRate = calcOrdinaryHourlyRate(payslip.earnings.baseSalary, prevOrdAllow, payslip.workInfo.salaryType, payslip.workInfo.hourlyWage);
   const previewHourlyStr = formatCurrency(Math.round(previewHourlyRate));
 
+  // 가산 적용 여부: 5인 이상이거나 5인 미만이면서 자동계산 활성화된 경우
+  const useAddition = payslip.businessSize === '5이상' || enableOvertimeAllowances;
+
   if (payslip.earnings.overtime > 0) {
     const otDay = payslip.workInfo.overtimeHours - payslip.workInfo.overtimeNightHours;
     const otNight = payslip.workInfo.overtimeNightHours;
     earningItems.push({
       label: '연장근로수당',
       amount: payslip.earnings.overtime,
-      calcMethod: otNight > 0
+      calcMethod: otNight > 0 && useAddition
         ? `${otDay}h×1.5 + ${otNight}h×2.0 (야간중복)`
-        : `${payslip.workInfo.overtimeHours}h × ${previewHourlyStr} × 1.5`
+        : `${payslip.workInfo.overtimeHours}h × ${previewHourlyStr} × ${useAddition ? '1.5' : '1.0'}`
     });
   }
   if (payslip.earnings.nightWork && payslip.earnings.nightWork > 0) {
     earningItems.push({
       label: '야간근로수당',
       amount: payslip.earnings.nightWork,
-      calcMethod: `${payslip.workInfo.nightHours}h × ${previewHourlyStr} × 0.5`
+      calcMethod: useAddition
+        ? `${payslip.workInfo.nightHours}h × ${previewHourlyStr} × 0.5`
+        : `${payslip.workInfo.nightHours}h × ${previewHourlyStr} × 1.0`
     });
   }
   if (payslip.earnings.holidayWork && payslip.earnings.holidayWork > 0) {
     const hh = payslip.workInfo.holidayHours;
     const hn = payslip.workInfo.holidayNightHours;
     let holMethod: string;
-    if (hn > 0) {
+    if (hn > 0 && useAddition) {
       holMethod = `휴일 ${hh}h (야간 ${hn}h 중복, 최대 2.5배)`;
     } else if (hh <= 8) {
-      holMethod = `${hh}h × ${previewHourlyStr} × 1.5`;
-    } else {
+      holMethod = `${hh}h × ${previewHourlyStr} × ${useAddition ? '1.5' : '1.0'}`;
+    } else if (useAddition) {
       holMethod = `8h×1.5 + ${hh - 8}h×2.0`;
+    } else {
+      holMethod = `${hh}h × ${previewHourlyStr} × 1.0`;
     }
     earningItems.push({
       label: '휴일근로수당',
