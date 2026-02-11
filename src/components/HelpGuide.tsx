@@ -39,9 +39,9 @@ export default function HelpGuide({ pageKey, steps }: HelpGuideProps) {
         <div
           className="mt-2 rounded-xl px-5 py-4 text-sm leading-relaxed"
           style={{
-            backgroundColor: 'var(--primary-light, #e8f0fe)',
-            border: '1px solid var(--primary)',
-            color: 'var(--text)',
+            backgroundColor: '#f0f4ff',
+            border: '1px solid #3b82f6',
+            color: '#1e293b',
           }}
         >
           <ol className="space-y-1.5 list-none p-0 m-0">
