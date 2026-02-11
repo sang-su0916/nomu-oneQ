@@ -28,6 +28,9 @@ interface ContractData {
   bonusInfo: string;
   mealAllowance: number;
   transportAllowance: number;
+  childcareAllowance: number;
+  researchAllowance: number;
+  vehicleAllowance: number;
   otherAllowance: string;
   otherAllowanceAmount: number;
   paymentDate: number;
@@ -72,6 +75,9 @@ const defaultContract: ContractData = {
   bonusInfo: '',
   mealAllowance: 200000,
   transportAllowance: 0,
+  childcareAllowance: 0,
+  researchAllowance: 0,
+  vehicleAllowance: 0,
   otherAllowance: '',
   otherAllowanceAmount: 0,
   paymentDate: 25,
@@ -613,6 +619,39 @@ export default function FulltimeContractPage() {
                 />
               </div>
               <div>
+                <label className="input-label">자가운전보조금 (비과세, 월)</label>
+                <input
+                  type="number"
+                  className="input-field"
+                  placeholder="200000"
+                  value={contract.vehicleAllowance || ''}
+                  onChange={(e) => updateContract('vehicleAllowance', parseInt(e.target.value) || 0)}
+                />
+                <p className="text-xs text-gray-400 mt-1">본인 차량 업무사용 시 월 20만원 비과세</p>
+              </div>
+              <div>
+                <label className="input-label">보육수당 (비과세, 월)</label>
+                <input
+                  type="number"
+                  className="input-field"
+                  placeholder="200000"
+                  value={contract.childcareAllowance || ''}
+                  onChange={(e) => updateContract('childcareAllowance', parseInt(e.target.value) || 0)}
+                />
+                <p className="text-xs text-gray-400 mt-1">6세 이하 자녀 보육 시 월 20만원 비과세</p>
+              </div>
+              <div>
+                <label className="input-label">연구보조비 (비과세, 월)</label>
+                <input
+                  type="number"
+                  className="input-field"
+                  placeholder="200000"
+                  value={contract.researchAllowance || ''}
+                  onChange={(e) => updateContract('researchAllowance', parseInt(e.target.value) || 0)}
+                />
+                <p className="text-xs text-gray-400 mt-1">연구활동종사자 월 20만원 비과세</p>
+              </div>
+              <div>
                 <label className="input-label">기타 수당 내역</label>
                 <input
                   type="text"
@@ -743,7 +782,7 @@ function ContractPreview({ contract }: { contract: ContractData }) {
   const monthlyPrescribedHours = Math.round((weeklyPrescribedHours + dailyPrescribedHours) * 365 / 12 / 7);
 
   // 총 월급 계산 (기타수당 금액 포함)
-  const totalMonthlySalary = contract.baseSalary + (contract.mealAllowance || 0) + (contract.transportAllowance || 0) + (contract.otherAllowanceAmount || 0);
+  const totalMonthlySalary = contract.baseSalary + (contract.mealAllowance || 0) + (contract.transportAllowance || 0) + (contract.childcareAllowance || 0) + (contract.researchAllowance || 0) + (contract.vehicleAllowance || 0) + (contract.otherAllowanceAmount || 0);
 
   const cellStyle = { border: '1px solid #d1d5db', padding: '10px 14px', verticalAlign: 'top' as const };
   const headerStyle = { ...cellStyle, backgroundColor: '#f8fafc', fontWeight: 600, width: '140px', color: '#374151' };
@@ -937,6 +976,24 @@ function ContractPreview({ contract }: { contract: ContractData }) {
                     <tr>
                       <td style={{ padding: '4px 0' }}>교통비</td>
                       <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(contract.transportAllowance)}</td>
+                    </tr>
+                  )}
+                  {contract.vehicleAllowance > 0 && (
+                    <tr>
+                      <td style={{ padding: '4px 0' }}>자가운전보조금 (비과세)</td>
+                      <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(contract.vehicleAllowance)}</td>
+                    </tr>
+                  )}
+                  {contract.childcareAllowance > 0 && (
+                    <tr>
+                      <td style={{ padding: '4px 0' }}>보육수당 (비과세)</td>
+                      <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(contract.childcareAllowance)}</td>
+                    </tr>
+                  )}
+                  {contract.researchAllowance > 0 && (
+                    <tr>
+                      <td style={{ padding: '4px 0' }}>연구보조비 (비과세)</td>
+                      <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(contract.researchAllowance)}</td>
                     </tr>
                   )}
                   {(contract.otherAllowance || contract.otherAllowanceAmount > 0) && (
