@@ -35,6 +35,10 @@ interface ParttimeContractData {
   weeklyHours: number;
   weeklyHoliday: string;
   hourlyWage: number;
+  mealAllowance: number;
+  vehicleAllowance: number;
+  childcareAllowance: number;
+  researchAllowance: number;
   weeklyAllowance: boolean;
   paymentMethod: string;
   paymentDate: number;
@@ -85,6 +89,10 @@ const defaultContract: ParttimeContractData = {
   weeklyHours: 15,
   weeklyHoliday: '매주 일요일',
   hourlyWage: 10320,  // 2026년 최저임금
+  mealAllowance: 0,
+  vehicleAllowance: 0,
+  childcareAllowance: 0,
+  researchAllowance: 0,
   weeklyAllowance: true,
   paymentMethod: '근로자 명의 예금통장에 입금',
   paymentDate: 10,
@@ -133,6 +141,10 @@ export default function ParttimeContractPage() {
       },
       weeklyHours: emp.workCondition.weeklyHours,
       hourlyWage: emp.salary.hourlyWage || 10320,
+      mealAllowance: emp.salary.mealAllowance || 0,
+      vehicleAllowance: emp.salary.carAllowance || 0,
+      childcareAllowance: emp.salary.childcareAllowance || 0,
+      researchAllowance: emp.salary.researchAllowance || 0,
       insurance: emp.insurance,
     }));
   };
@@ -652,6 +664,53 @@ export default function ParttimeContractPage() {
               </div>
             </div>
 
+            {/* 비과세 수당 */}
+            <div className="mt-6 pt-4 border-t border-purple-100">
+              <h3 className="text-sm font-bold text-purple-700 mb-3">비과세 수당 (월 정액)</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="input-label">식대 (비과세, 월)</label>
+                  <input
+                    type="number"
+                    className="input-field"
+                    value={contract.mealAllowance || ''}
+                    onChange={(e) => updateContract('mealAllowance', parseInt(e.target.value) || 0)}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">월 20만원까지 비과세</p>
+                </div>
+                <div>
+                  <label className="input-label">자가운전보조금 (비과세, 월)</label>
+                  <input
+                    type="number"
+                    className="input-field"
+                    value={contract.vehicleAllowance || ''}
+                    onChange={(e) => updateContract('vehicleAllowance', parseInt(e.target.value) || 0)}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">본인 차량 업무사용 시 월 20만원 비과세</p>
+                </div>
+                <div>
+                  <label className="input-label">보육수당 (비과세, 월)</label>
+                  <input
+                    type="number"
+                    className="input-field"
+                    value={contract.childcareAllowance || ''}
+                    onChange={(e) => updateContract('childcareAllowance', parseInt(e.target.value) || 0)}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">6세 이하 자녀 보육 시 월 20만원 비과세</p>
+                </div>
+                <div>
+                  <label className="input-label">연구보조비 (비과세, 월)</label>
+                  <input
+                    type="number"
+                    className="input-field"
+                    value={contract.researchAllowance || ''}
+                    onChange={(e) => updateContract('researchAllowance', parseInt(e.target.value) || 0)}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">연구활동종사자 월 20만원 비과세</p>
+                </div>
+              </div>
+            </div>
+
             {/* 예상 급여 계산 */}
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
               <p className="text-gray-700 font-medium mb-2">💵 예상 월급 (4주 기준)</p>
@@ -660,10 +719,14 @@ export default function ParttimeContractPage() {
                 {contract.weeklyAllowance && contract.weeklyHours >= 15 && (
                   <p>• 주휴수당: {formatCurrency(contract.hourlyWage * (contract.weeklyHours / 5) * 4)} (주 {(contract.weeklyHours / 5).toFixed(1)}시간 × 4주)</p>
                 )}
+                {(contract.mealAllowance > 0 || contract.vehicleAllowance > 0 || contract.childcareAllowance > 0 || contract.researchAllowance > 0) && (
+                  <p>• 비과세 수당: {formatCurrency(contract.mealAllowance + contract.vehicleAllowance + contract.childcareAllowance + contract.researchAllowance)}</p>
+                )}
                 <p className="font-bold text-purple-700 mt-2">
                   합계: {formatCurrency(
-                    contract.hourlyWage * contract.weeklyHours * 4 + 
-                    (contract.weeklyAllowance && contract.weeklyHours >= 15 ? contract.hourlyWage * (contract.weeklyHours / 5) * 4 : 0)
+                    contract.hourlyWage * contract.weeklyHours * 4 +
+                    (contract.weeklyAllowance && contract.weeklyHours >= 15 ? contract.hourlyWage * (contract.weeklyHours / 5) * 4 : 0) +
+                    contract.mealAllowance + contract.vehicleAllowance + contract.childcareAllowance + contract.researchAllowance
                   )}
                 </p>
               </div>
@@ -938,6 +1001,44 @@ function ParttimeContractPreview({ contract }: { contract: ParttimeContractData 
               </span>
             </td>
           </tr>
+          {(contract.mealAllowance > 0 || contract.vehicleAllowance > 0 || contract.childcareAllowance > 0 || contract.researchAllowance > 0) && (
+            <tr>
+              <th style={headerStyle}>비과세 수당</th>
+              <td style={cellStyle}>
+                <table style={{ width: '100%' }}>
+                  <tbody>
+                    {contract.mealAllowance > 0 && (
+                      <tr>
+                        <td style={{ padding: '4px 0' }}>식대 (비과세)</td>
+                        <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(contract.mealAllowance)}</td>
+                      </tr>
+                    )}
+                    {contract.vehicleAllowance > 0 && (
+                      <tr>
+                        <td style={{ padding: '4px 0' }}>자가운전보조금 (비과세)</td>
+                        <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(contract.vehicleAllowance)}</td>
+                      </tr>
+                    )}
+                    {contract.childcareAllowance > 0 && (
+                      <tr>
+                        <td style={{ padding: '4px 0' }}>보육수당 (비과세)</td>
+                        <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(contract.childcareAllowance)}</td>
+                      </tr>
+                    )}
+                    {contract.researchAllowance > 0 && (
+                      <tr>
+                        <td style={{ padding: '4px 0' }}>연구보조비 (비과세)</td>
+                        <td style={{ padding: '4px 0', textAlign: 'right' }}>{formatCurrency(contract.researchAllowance)}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+                <span style={{ color: '#6b7280', fontSize: '13px' }}>
+                  ※ 각 항목 월 20만원 한도 비과세 (소득세법 시행령)
+                </span>
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
 

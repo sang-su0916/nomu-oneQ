@@ -19,6 +19,8 @@ interface LedgerEmployee {
   bonus: number;
   mealAllowance: number;
   carAllowance: number;
+  childcareAllowance: number;
+  researchAllowance: number;
   otherAllowance: number;
   nationalPension: number;
   healthInsurance: number;
@@ -46,6 +48,8 @@ const createEmptyEmployee = (): LedgerEmployee => ({
   bonus: 0,
   mealAllowance: 0,
   carAllowance: 0,
+  childcareAllowance: 0,
+  researchAllowance: 0,
   otherAllowance: 0,
   nationalPension: 0,
   healthInsurance: 0,
@@ -99,7 +103,9 @@ export default function WageLedgerPage() {
       bonus: 0,
       mealAllowance: emp.salary.mealAllowance,
       carAllowance: emp.salary.carAllowance,
-      otherAllowance: emp.salary.childcareAllowance + (emp.salary.otherAllowances?.reduce((sum: number, a: { amount: number }) => sum + a.amount, 0) || 0),
+      childcareAllowance: emp.salary.childcareAllowance,
+      researchAllowance: emp.salary.researchAllowance || 0,
+      otherAllowance: emp.salary.otherAllowances?.reduce((sum: number, a: { amount: number }) => sum + a.amount, 0) || 0,
       nationalPension: insurance.nationalPension,
       healthInsurance: insurance.healthInsurance,
       longTermCare: insurance.longTermCare,
@@ -228,6 +234,8 @@ export default function WageLedgerPage() {
     bonus: acc.bonus + e.bonus,
     mealAllowance: acc.mealAllowance + e.mealAllowance,
     carAllowance: acc.carAllowance + e.carAllowance,
+    childcareAllowance: acc.childcareAllowance + e.childcareAllowance,
+    researchAllowance: acc.researchAllowance + e.researchAllowance,
     otherAllowance: acc.otherAllowance + e.otherAllowance,
     nationalPension: acc.nationalPension + e.nationalPension,
     healthInsurance: acc.healthInsurance + e.healthInsurance,
@@ -237,17 +245,17 @@ export default function WageLedgerPage() {
     localTax: acc.localTax + e.localTax,
   }), {
     baseSalary: 0, overtime: 0, nightWork: 0, holidayWork: 0, bonus: 0,
-    mealAllowance: 0, carAllowance: 0, otherAllowance: 0,
+    mealAllowance: 0, carAllowance: 0, childcareAllowance: 0, researchAllowance: 0, otherAllowance: 0,
     nationalPension: 0, healthInsurance: 0, longTermCare: 0, employmentInsurance: 0,
     incomeTax: 0, localTax: 0,
   });
 
-  const getTotalEarnings = (e: LedgerEmployee) => 
-    e.baseSalary + e.overtime + e.nightWork + e.holidayWork + e.bonus + 
-    e.mealAllowance + e.carAllowance + e.otherAllowance;
+  const getTotalEarnings = (e: LedgerEmployee) =>
+    e.baseSalary + e.overtime + e.nightWork + e.holidayWork + e.bonus +
+    e.mealAllowance + e.carAllowance + e.childcareAllowance + e.researchAllowance + e.otherAllowance;
 
   const getTotalDeductions = (e: LedgerEmployee) =>
-    e.nationalPension + e.healthInsurance + e.longTermCare + 
+    e.nationalPension + e.healthInsurance + e.longTermCare +
     e.employmentInsurance + e.incomeTax + e.localTax;
 
   const getNetPay = (e: LedgerEmployee) => getTotalEarnings(e) - getTotalDeductions(e);
@@ -539,6 +547,24 @@ export default function WageLedgerPage() {
                         />
                       </div>
                       <div>
+                        <label className="text-gray-500 text-xs">보육수당</label>
+                        <input
+                          type="number"
+                          className="input-field py-1"
+                          value={emp.childcareAllowance || ''}
+                          onChange={(e) => updateEmployee(emp.id, 'childcareAllowance', parseInt(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-500 text-xs">연구보조비</label>
+                        <input
+                          type="number"
+                          className="input-field py-1"
+                          value={emp.researchAllowance || ''}
+                          onChange={(e) => updateEmployee(emp.id, 'researchAllowance', parseInt(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div>
                         <label className="text-gray-500 text-xs">기타수당</label>
                         <input
                           type="number"
@@ -636,7 +662,8 @@ export default function WageLedgerPage() {
                   <p className="text-2xl font-bold text-green-600">
                     {formatCurrency(
                       totals.baseSalary + totals.overtime + totals.nightWork + totals.holidayWork +
-                      totals.bonus + totals.mealAllowance + totals.carAllowance + totals.otherAllowance
+                      totals.bonus + totals.mealAllowance + totals.carAllowance +
+                      totals.childcareAllowance + totals.researchAllowance + totals.otherAllowance
                     )}
                   </p>
                 </div>
@@ -679,9 +706,9 @@ export default function WageLedgerPage() {
 }
 
 function WageLedgerPreview({ data }: { data: WageLedgerData }) {
-  const getTotalEarnings = (e: LedgerEmployee) => 
-    e.baseSalary + e.overtime + e.nightWork + e.holidayWork + e.bonus + 
-    e.mealAllowance + e.carAllowance + e.otherAllowance;
+  const getTotalEarnings = (e: LedgerEmployee) =>
+    e.baseSalary + e.overtime + e.nightWork + e.holidayWork + e.bonus +
+    e.mealAllowance + e.carAllowance + e.childcareAllowance + e.researchAllowance + e.otherAllowance;
 
   const getTotalDeductions = (e: LedgerEmployee) =>
     e.nationalPension + e.healthInsurance + e.longTermCare + 
@@ -716,7 +743,7 @@ function WageLedgerPreview({ data }: { data: WageLedgerData }) {
             <th rowSpan={2} style={headerStyle}>No</th>
             <th rowSpan={2} style={headerStyle}>성명</th>
             <th rowSpan={2} style={headerStyle}>직위</th>
-            <th colSpan={8} style={headerStyle}>지급 항목</th>
+            <th colSpan={10} style={headerStyle}>지급 항목</th>
             <th colSpan={6} style={headerStyle}>공제 항목</th>
             <th rowSpan={2} style={headerStyle}>실지급액</th>
           </tr>
@@ -728,6 +755,8 @@ function WageLedgerPreview({ data }: { data: WageLedgerData }) {
             <th style={subHeaderStyle}>상여</th>
             <th style={subHeaderStyle}>식대</th>
             <th style={subHeaderStyle}>차량</th>
+            <th style={subHeaderStyle}>보육</th>
+            <th style={subHeaderStyle}>연구</th>
             <th style={subHeaderStyle}>기타</th>
             <th style={{ ...subHeaderStyle, backgroundColor: '#fee2e2' }}>국민</th>
             <th style={{ ...subHeaderStyle, backgroundColor: '#fee2e2' }}>건강</th>
@@ -750,6 +779,8 @@ function WageLedgerPreview({ data }: { data: WageLedgerData }) {
               <td style={cellStyle}>{emp.bonus.toLocaleString()}</td>
               <td style={cellStyle}>{emp.mealAllowance.toLocaleString()}</td>
               <td style={cellStyle}>{emp.carAllowance.toLocaleString()}</td>
+              <td style={cellStyle}>{emp.childcareAllowance.toLocaleString()}</td>
+              <td style={cellStyle}>{emp.researchAllowance.toLocaleString()}</td>
               <td style={cellStyle}>{emp.otherAllowance.toLocaleString()}</td>
               <td style={{ ...cellStyle, backgroundColor: '#fef2f2' }}>{emp.nationalPension.toLocaleString()}</td>
               <td style={{ ...cellStyle, backgroundColor: '#fef2f2' }}>{emp.healthInsurance.toLocaleString()}</td>
@@ -772,6 +803,8 @@ function WageLedgerPreview({ data }: { data: WageLedgerData }) {
             <td style={cellStyle}>{data.employees.reduce((s, e) => s + e.bonus, 0).toLocaleString()}</td>
             <td style={cellStyle}>{data.employees.reduce((s, e) => s + e.mealAllowance, 0).toLocaleString()}</td>
             <td style={cellStyle}>{data.employees.reduce((s, e) => s + e.carAllowance, 0).toLocaleString()}</td>
+            <td style={cellStyle}>{data.employees.reduce((s, e) => s + e.childcareAllowance, 0).toLocaleString()}</td>
+            <td style={cellStyle}>{data.employees.reduce((s, e) => s + e.researchAllowance, 0).toLocaleString()}</td>
             <td style={cellStyle}>{data.employees.reduce((s, e) => s + e.otherAllowance, 0).toLocaleString()}</td>
             <td style={{ ...cellStyle, backgroundColor: '#fef2f2' }}>{data.employees.reduce((s, e) => s + e.nationalPension, 0).toLocaleString()}</td>
             <td style={{ ...cellStyle, backgroundColor: '#fef2f2' }}>{data.employees.reduce((s, e) => s + e.healthInsurance, 0).toLocaleString()}</td>
