@@ -26,21 +26,22 @@ interface AnnualLeaveData {
 function calcAnnualLeave(hireDate: string, year: number): number {
   if (!hireDate) return 15;
   const hire = new Date(hireDate + 'T00:00:00');
-  const yearEnd = new Date(year, 11, 31);
 
-  // 근속 개월 수 계산 (대상 연도 말 기준)
-  const totalMonths = (yearEnd.getFullYear() - hire.getFullYear()) * 12 + (yearEnd.getMonth() - hire.getMonth());
+  // 조회 시점: 해당 연도의 12월 31일
+  const referenceDate = new Date(year, 11, 31);
+
+  // 입사일로부터 조회 시점까지의 경과 일수
+  const daysDiff = Math.floor((referenceDate.getTime() - hire.getTime()) / (1000 * 60 * 60 * 24));
 
   // 입사 1년 미만: 1개월 개근 시 1일 (근로기준법 제60조 제2항, 최대 11일)
-  if (totalMonths < 12) {
-    const workedMonths = Math.max(0, Math.floor(
-      ((yearEnd.getTime() - hire.getTime()) / (1000 * 60 * 60 * 24)) / 30
-    ));
+  if (daysDiff < 365) {
+    const workedMonths = Math.floor(daysDiff / 30);
     return Math.min(11, workedMonths);
   }
 
   // 1년 이상 근속: 15일 기본 + 2년마다 1일 추가 (최대 25일)
-  const fullYears = Math.floor(totalMonths / 12);
+  // 입사일 기준으로 만 근속년수 계산
+  const fullYears = Math.floor(daysDiff / 365);
   const extra = Math.max(0, Math.floor((fullYears - 1) / 2));
   return Math.min(25, 15 + extra);
 }
@@ -332,8 +333,8 @@ function AnnualLeavePreview({ data, usedDays, remainDays }: { data: AnnualLeaveD
       </table>
 
       <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '32px' }}>
-        <p>* 근로기준법 제60조에 따라 연차유급휴가를 산정합니다.</p>
-        <p>* 1년 미만 근로자: 1개월 개근 시 1일 (최대 11일), 1년 이상: 15일, 3년 이상: 2년마다 1일 추가 (최대 25일)</p>
+        <p>* 근로기준법 제60조에 따라 입사일 기준으로 연차유급휴가를 산정합니다.</p>
+        <p>* 1년 미만 근로자: 매월 1일 발생 (최대 11일), 1년 이상: 15일, 3년 이상: 2년마다 1일 추가 (최대 25일)</p>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '40px' }}>
