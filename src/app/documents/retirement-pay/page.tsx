@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatCurrency, formatResidentNumber, loadEmployees } from '@/lib/storage';
+import HelpGuide from '@/components/HelpGuide';
 
 interface MonthSalary {
   year: number;
@@ -121,6 +122,15 @@ export default function RetirementPayPage() {
           </button>
         </div>
       </div>
+
+      <HelpGuide
+        pageKey="retirement-pay"
+        steps={[
+          '직원을 선택하면 입사일과 급여 정보가 자동 입력됩니다.',
+          '퇴직일과 최근 3개월 급여를 입력하면 퇴직금이 자동 계산됩니다.',
+          '"미리보기"로 확인 후 "인쇄/PDF"로 출력하세요.',
+        ]}
+      />
 
       {!showPreview ? (
         <div className="space-y-6 animate-fade-in">

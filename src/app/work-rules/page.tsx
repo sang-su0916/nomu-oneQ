@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo } from '@/lib/storage';
+import HelpGuide from '@/components/HelpGuide';
 
 interface WorkRulesData {
   company: CompanyInfo;
@@ -194,6 +195,15 @@ export default function WorkRulesPage() {
           </button>
         </div>
       </div>
+
+      <HelpGuide
+        pageKey="work-rules"
+        steps={[
+          '회사 정보를 확인하고 필요시 수정하세요.',
+          '각 조항의 내용을 우리 회사 실정에 맞게 수정하세요.',
+          '"미리보기"로 전체 내용을 확인한 뒤 "인쇄/PDF"로 출력하세요.',
+        ]}
+      />
 
       {/* 안내 배너 */}
       <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">

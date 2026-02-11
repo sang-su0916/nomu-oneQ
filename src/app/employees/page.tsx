@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Employee, EmploymentType } from '@/types';
-import { 
-  loadEmployees, 
+import HelpGuide from '@/components/HelpGuide';
+import {
+  loadEmployees,
   addEmployee, 
   updateEmployee, 
   deleteEmployee, 
@@ -166,6 +167,15 @@ export default function EmployeesPage() {
           + 직원 등록
         </button>
       </div>
+
+      <HelpGuide
+        pageKey="employees"
+        steps={[
+          '"+ 직원 등록" 버튼으로 직원 정보를 입력하세요.',
+          '등록된 직원은 근로계약서, 급여명세서 등에 자동 연동됩니다.',
+          '직원 카드의 "수정" 버튼으로 정보를 변경할 수 있습니다.',
+        ]}
+      />
 
       {/* 직원 목록 */}
       {!showForm && (

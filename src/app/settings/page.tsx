@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import HelpGuide from '@/components/HelpGuide';
 import { CompanyInfo } from '@/types';
 import { saveCompanyInfo, loadCompanyInfo, defaultCompanyInfo, formatBusinessNumber, formatPhoneNumber } from '@/lib/storage';
 
@@ -36,6 +37,15 @@ export default function SettingsPage() {
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-gray-800 mb-2">⚙️ 설정</h1>
       <p className="text-gray-500 mb-8">회사 정보를 입력하면 모든 서류에 자동으로 반영됩니다.</p>
+
+      <HelpGuide
+        pageKey="settings"
+        steps={[
+          '상호, 대표자, 사업자번호 등 회사 정보를 입력하세요.',
+          '여기서 입력한 정보는 근로계약서, 급여명세서 등 모든 서류에 자동 반영됩니다.',
+          '변경 사항은 "저장" 버튼을 눌러야 적용됩니다.',
+        ]}
+      />
 
       <div className="form-section">
         <h2 className="form-section-title">🏢 회사 정보</h2>

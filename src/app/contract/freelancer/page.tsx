@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, EmployeeInfo } from '@/types';
+import HelpGuide from '@/components/HelpGuide';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatCurrency, formatBusinessNumber, formatPhoneNumber } from '@/lib/storage';
 
 interface FreelancerContractData {
@@ -126,6 +127,15 @@ export default function FreelancerContractPage() {
           </button>
         </div>
       </div>
+
+      <HelpGuide
+        pageKey="contract-freelancer"
+        steps={[
+          '갑(발주자)과 을(수급자) 정보를 각각 입력하세요.',
+          '용역 내용, 기간, 대금을 명확하게 기재하세요.',
+          '"미리보기"로 확인 후 "인쇄/PDF"로 출력하세요.',
+        ]}
+      />
 
       {!showPreview ? (
         <div className="space-y-6">

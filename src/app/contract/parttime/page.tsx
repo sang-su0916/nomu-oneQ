@@ -5,6 +5,7 @@ import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, EmployeeInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatCurrency, formatBusinessNumber, formatResidentNumber, getActiveEmployees } from '@/lib/storage';
 import { MINIMUM_WAGE } from '@/lib/constants';
+import HelpGuide from '@/components/HelpGuide';
 
 interface WorkSchedule {
   day: string;
@@ -257,6 +258,15 @@ export default function ParttimeContractPage() {
           </button>
         </div>
       </div>
+
+      <HelpGuide
+        pageKey="contract-parttime"
+        steps={[
+          '직원 선택 후 시급과 주간 근무시간을 정확히 입력하세요.',
+          '시급이 최저임금 미만이면 경고가 표시됩니다.',
+          '"미리보기"로 확인 후 "인쇄/PDF"로 출력하세요.',
+        ]}
+      />
 
       {!showPreview ? (
         <div className="space-y-6">

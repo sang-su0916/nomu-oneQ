@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatBusinessNumber, formatResidentNumber, getActiveEmployees } from '@/lib/storage';
+import HelpGuide from '@/components/HelpGuide';
 
 interface CertificateData {
   company: CompanyInfo;
@@ -87,6 +88,15 @@ export default function CertificatePage() {
           </button>
         </div>
       </div>
+
+      <HelpGuide
+        pageKey="certificate"
+        steps={[
+          '직원을 선택하면 재직 정보가 자동 입력됩니다.',
+          '발급 용도(은행, 관공서 등)를 선택하세요.',
+          '"미리보기"로 확인 후 "인쇄/PDF"로 출력하세요.',
+        ]}
+      />
 
       {!showPreview ? (
         <div className="space-y-6 animate-fade-in">

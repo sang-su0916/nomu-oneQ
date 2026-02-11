@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, EmployeeInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatBusinessNumber, formatResidentNumber, getActiveEmployees } from '@/lib/storage';
+import HelpGuide from '@/components/HelpGuide';
 
 interface ConsentData {
   company: CompanyInfo;
@@ -93,6 +94,15 @@ export default function PrivacyConsentPage() {
           </button>
         </div>
       </div>
+
+      <HelpGuide
+        pageKey="privacy-consent"
+        steps={[
+          '회사 정보와 직원 정보를 입력하세요 (직원 선택 시 자동 입력).',
+          '수집 목적, 보유 기간 등 동의 항목을 확인하세요.',
+          '"미리보기"로 확인 후 "인쇄/PDF"로 출력하세요.',
+        ]}
+      />
 
       {!showPreview ? (
         <div className="space-y-6 animate-fade-in">

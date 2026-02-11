@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, getActiveEmployees } from '@/lib/storage';
+import HelpGuide from '@/components/HelpGuide';
 
 interface ResignationData {
   company: CompanyInfo;
@@ -79,6 +80,15 @@ export default function ResignationPage() {
           </button>
         </div>
       </div>
+
+      <HelpGuide
+        pageKey="resignation"
+        steps={[
+          '직원을 선택하면 기본 정보가 자동 입력됩니다.',
+          '사직 사유와 희망 퇴사일을 입력하세요.',
+          '"미리보기"로 확인 후 "인쇄/PDF"로 출력하세요.',
+        ]}
+      />
 
       {!showPreview ? (
         <div className="space-y-6 animate-fade-in">

@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, getActiveEmployees } from '@/lib/storage';
+import HelpGuide from '@/components/HelpGuide';
 
 interface DayRecord {
   day: number;
@@ -131,6 +132,15 @@ export default function AttendancePage() {
           </button>
         </div>
       </div>
+
+      <HelpGuide
+        pageKey="attendance"
+        steps={[
+          '직원과 해당 월을 선택하세요.',
+          '각 날짜별 출근/퇴근 시간을 입력하세요.',
+          '"미리보기"로 확인 후 "인쇄/PDF"로 출력하세요.',
+        ]}
+      />
 
       {!showPreview ? (
         <div className="space-y-6 animate-fade-in">

@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, getActiveEmployees } from '@/lib/storage';
+import HelpGuide from '@/components/HelpGuide';
 
 interface OvertimeData {
   company: CompanyInfo;
@@ -80,6 +81,15 @@ export default function OvertimePage() {
           </button>
         </div>
       </div>
+
+      <HelpGuide
+        pageKey="overtime"
+        steps={[
+          '직원을 선택하고 시간외근로 유형(연장/야간/휴일)을 선택하세요.',
+          '근로 시간과 기간을 입력하세요.',
+          '"미리보기"로 확인 후 "인쇄/PDF"로 출력하세요.',
+        ]}
+      />
 
       {!showPreview ? (
         <div className="space-y-6 animate-fade-in">

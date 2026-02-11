@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, getActiveEmployees } from '@/lib/storage';
+import HelpGuide from '@/components/HelpGuide';
 
 interface NoticeData {
   company: CompanyInfo;
@@ -86,6 +87,15 @@ export default function AnnualLeaveNoticePage() {
           </button>
         </div>
       </div>
+
+      <HelpGuide
+        pageKey="annual-leave-notice"
+        steps={[
+          '직원을 선택하고 미사용 연차 일수를 입력하세요.',
+          '사용 촉진 기간과 통보일을 설정하세요.',
+          '"미리보기"로 확인 후 "인쇄/PDF"로 출력하세요.',
+        ]}
+      />
 
       {!showPreview ? (
         <div className="space-y-6 animate-fade-in">

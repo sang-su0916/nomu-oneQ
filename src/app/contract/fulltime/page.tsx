@@ -5,6 +5,7 @@ import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, EmployeeInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatCurrency, formatBusinessNumber, formatResidentNumber, getActiveEmployees } from '@/lib/storage';
 import { MINIMUM_WAGE } from '@/lib/constants';
+import HelpGuide from '@/components/HelpGuide';
 
 interface ContractData {
   company: CompanyInfo;
@@ -191,6 +192,15 @@ export default function FulltimeContractPage() {
           </button>
         </div>
       </div>
+
+      <HelpGuide
+        pageKey="contract-fulltime"
+        steps={[
+          '상단 "직원 선택"에서 등록된 직원을 선택하면 정보가 자동 입력됩니다.',
+          '근무 조건(근무시간, 급여 등)을 확인하고 필요시 수정하세요.',
+          '"미리보기"로 완성된 계약서를 확인한 뒤 "인쇄/PDF"로 출력하세요.',
+        ]}
+      />
 
       {!showPreview ? (
         <div className="space-y-6">

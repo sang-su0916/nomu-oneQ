@@ -5,6 +5,7 @@ import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee as RegisteredEmployee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatCurrency, formatBusinessNumber, getActiveEmployees } from '@/lib/storage';
 import { calculateInsurance, calculateIncomeTax } from '@/lib/constants';
+import HelpGuide from '@/components/HelpGuide';
 
 interface LedgerEmployee {
   id: string;
@@ -73,6 +74,8 @@ export default function WageLedgerPage() {
     typeof window !== 'undefined' ? getActiveEmployees() : []
   );
   const [showPreview, setShowPreview] = useState(false);
+  const [showSelector, setShowSelector] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
@@ -80,33 +83,71 @@ export default function WageLedgerPage() {
     documentTitle: `임금대장_${data.year}년${data.month}월`,
   });
 
+  // 등록 직원 → 임금대장 직원 매핑
+  const mapToLedgerEmployee = (emp: RegisteredEmployee): LedgerEmployee => {
+    const insurance = calculateInsurance(emp.salary.baseSalary);
+    const incomeTax = calculateIncomeTax(emp.salary.baseSalary);
+    return {
+      id: `${Date.now()}-${emp.id}`,
+      registeredId: emp.id,
+      name: emp.info.name,
+      position: emp.position || '',
+      baseSalary: emp.salary.baseSalary,
+      overtime: 0,
+      nightWork: 0,
+      holidayWork: 0,
+      bonus: 0,
+      mealAllowance: emp.salary.mealAllowance,
+      carAllowance: emp.salary.carAllowance,
+      otherAllowance: emp.salary.childcareAllowance + (emp.salary.otherAllowances?.reduce((sum: number, a: { amount: number }) => sum + a.amount, 0) || 0),
+      nationalPension: insurance.nationalPension,
+      healthInsurance: insurance.healthInsurance,
+      longTermCare: insurance.longTermCare,
+      employmentInsurance: insurance.employmentInsurance,
+      incomeTax,
+      localTax: Math.round(incomeTax * 0.1),
+    };
+  };
+
+  // 이미 추가된 직원 ID 목록
+  const addedEmployeeIds = new Set(data.employees.map(e => e.registeredId).filter(Boolean));
+
   // 등록된 직원 전체 추가
   const addAllRegisteredEmployees = () => {
-    const newEmployees = registeredEmployees.map(emp => {
-      const insurance = calculateInsurance(emp.salary.baseSalary);
-      const incomeTax = calculateIncomeTax(emp.salary.baseSalary);
-      return {
-        id: `${Date.now()}-${emp.id}`,
-        registeredId: emp.id,
-        name: emp.info.name,
-        position: emp.position || '',
-        baseSalary: emp.salary.baseSalary,
-        overtime: 0,
-        nightWork: 0,
-        holidayWork: 0,
-        bonus: 0,
-        mealAllowance: emp.salary.mealAllowance,
-        carAllowance: emp.salary.carAllowance,
-        otherAllowance: emp.salary.childcareAllowance + (emp.salary.otherAllowances?.reduce((sum: number, a: { amount: number }) => sum + a.amount, 0) || 0),
-        nationalPension: insurance.nationalPension,
-        healthInsurance: insurance.healthInsurance,
-        longTermCare: insurance.longTermCare,
-        employmentInsurance: insurance.employmentInsurance,
-        incomeTax,
-        localTax: Math.round(incomeTax * 0.1),
-      };
+    const notYetAdded = registeredEmployees.filter(emp => !addedEmployeeIds.has(emp.id));
+    if (notYetAdded.length === 0) return;
+    const newEmployees = notYetAdded.map(mapToLedgerEmployee);
+    setData(prev => ({ ...prev, employees: [...prev.employees, ...newEmployees] }));
+  };
+
+  // 선택한 직원만 추가
+  const addSelectedEmployees = () => {
+    const selected = registeredEmployees.filter(emp => selectedIds.has(emp.id) && !addedEmployeeIds.has(emp.id));
+    if (selected.length === 0) return;
+    const newEmployees = selected.map(mapToLedgerEmployee);
+    setData(prev => ({ ...prev, employees: [...prev.employees, ...newEmployees] }));
+    setShowSelector(false);
+    setSelectedIds(new Set());
+  };
+
+  // 전체 선택/해제 토글
+  const toggleSelectAll = () => {
+    const selectable = registeredEmployees.filter(emp => !addedEmployeeIds.has(emp.id));
+    if (selectedIds.size === selectable.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(selectable.map(emp => emp.id)));
+    }
+  };
+
+  // 개별 선택 토글
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
-    setData(prev => ({ ...prev, employees: newEmployees }));
   };
 
   // 직원 추가 (수동)
@@ -231,6 +272,16 @@ export default function WageLedgerPage() {
         </div>
       </div>
 
+      <HelpGuide
+        pageKey="wage-ledger"
+        steps={[
+          '"직원 연동"에서 등록된 직원을 선택하면 기본급이 자동 입력됩니다.',
+          '연장/야간/휴일 수당은 해당 직원 칸에 직접 입력하세요.',
+          '"일괄 계산" 버튼을 누르면 4대보험과 세금이 자동 계산됩니다.',
+          '"미리보기"로 확인 후 "인쇄/PDF"로 출력하세요.',
+        ]}
+      />
+
       {!showPreview ? (
         <div className="space-y-6">
           {/* 기간 설정 */}
@@ -269,16 +320,87 @@ export default function WageLedgerPage() {
             <div className="form-section">
               <div className="flex items-center justify-between">
                 <h2 className="form-section-title mb-0">🔗 직원 연동</h2>
-                <button
-                  onClick={addAllRegisteredEmployees}
-                  className="btn-primary text-sm"
-                >
-                  👥 등록된 직원 전체 추가 ({registeredEmployees.length}명)
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={addAllRegisteredEmployees}
+                    className="btn-primary text-sm"
+                    disabled={registeredEmployees.length === addedEmployeeIds.size}
+                  >
+                    👥 전체 추가 ({registeredEmployees.length - addedEmployeeIds.size}명)
+                  </button>
+                  <button
+                    onClick={() => { setShowSelector(!showSelector); setSelectedIds(new Set()); }}
+                    className="btn-secondary text-sm"
+                    disabled={registeredEmployees.length === addedEmployeeIds.size}
+                  >
+                    {showSelector ? '접기' : '☑️ 선택 추가'}
+                  </button>
+                </div>
               </div>
               <p className="text-sm text-gray-500 mt-2">
                 등록된 직원의 급여 정보를 자동으로 불러옵니다. 연장/야간/휴일 근로수당은 별도 입력하세요.
               </p>
+
+              {/* 직원 선택 패널 */}
+              {showSelector && (
+                <div className="mt-4 border rounded-lg bg-gray-50 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.size > 0 && selectedIds.size === registeredEmployees.filter(e => !addedEmployeeIds.has(e.id)).length}
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
+                      <span className="text-sm font-medium text-gray-700">전체 선택</span>
+                    </label>
+                    <span className="text-xs text-gray-500">{selectedIds.size}명 선택됨</span>
+                  </div>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {registeredEmployees.map(emp => {
+                      const alreadyAdded = addedEmployeeIds.has(emp.id);
+                      return (
+                        <label
+                          key={emp.id}
+                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                            alreadyAdded ? 'opacity-50 cursor-not-allowed' : selectedIds.has(emp.id) ? 'bg-blue-50' : 'hover:bg-white'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(emp.id)}
+                            disabled={alreadyAdded}
+                            onChange={() => toggleSelect(emp.id)}
+                            className="w-4 h-4 rounded border-gray-300"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-gray-800">{emp.info.name}</span>
+                            {emp.position && <span className="text-xs text-gray-500 ml-2">{emp.position}</span>}
+                          </div>
+                          <span className="text-xs text-gray-500 whitespace-nowrap">
+                            {alreadyAdded ? '추가됨' : `기본급 ${formatCurrency(emp.salary.baseSalary)}`}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
+                    <button
+                      onClick={() => { setShowSelector(false); setSelectedIds(new Set()); }}
+                      className="btn-secondary text-sm"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={addSelectedEmployees}
+                      disabled={selectedIds.size === 0}
+                      className="btn-primary text-sm disabled:opacity-50"
+                    >
+                      선택한 직원 추가 ({selectedIds.size}명)
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
