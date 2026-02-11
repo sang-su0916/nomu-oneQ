@@ -131,7 +131,9 @@ export default function FulltimeContractPage() {
       baseSalary: emp.salary.baseSalary,
       annualSalary: emp.salary.baseSalary * 12,
       mealAllowance: emp.salary.mealAllowance,
-      transportAllowance: emp.salary.carAllowance,
+      vehicleAllowance: emp.salary.carAllowance,
+      childcareAllowance: emp.salary.childcareAllowance,
+      researchAllowance: emp.salary.researchAllowance || 0,
       insurance: emp.insurance,
     }));
   };

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, EmployeeInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatCurrency, formatBusinessNumber, getActiveEmployees } from '@/lib/storage';
+import { getWorkingDays, MINIMUM_WAGE } from '@/lib/constants';
 import HelpGuide from '@/components/HelpGuide';
 
 // 추가 가능한 지급 항목 목록 (2026년 기준)
@@ -116,7 +117,9 @@ export default function PayslipPage() {
   const [payslip, setPayslip] = useState<PayslipData>(() => {
     if (typeof window === 'undefined') return defaultPayslip;
     const saved = loadCompanyInfo();
-    return saved ? { ...defaultPayslip, company: saved } : defaultPayslip;
+    const initialWork = getWorkingDays(today.getFullYear(), today.getMonth() + 1);
+    const base = saved ? { ...defaultPayslip, company: saved } : defaultPayslip;
+    return { ...base, workInfo: { ...base.workInfo, workDays: initialWork.days, totalWorkHours: MINIMUM_WAGE.monthlyHours } };
   });
   const [showPreview, setShowPreview] = useState(false);
   const [autoCalculate, setAutoCalculate] = useState(true);
@@ -126,6 +129,25 @@ export default function PayslipPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [showAdditionalOptions, setShowAdditionalOptions] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+
+  // 근로일수/근로시간 자동 계산
+  // 월급제: 209시간 고정 (주휴시간 포함 월 소정근로시간)
+  // 시급제: 실제 근로일수 × 일 소정근로시간
+  const calcWorkInfo = useCallback((year: number, month: number, emp?: Employee, salaryType?: 'monthly' | 'hourly') => {
+    const workDays = emp?.workCondition.workDays || ['월', '화', '수', '목', '금'];
+    let dailyHours = 8;
+    if (emp) {
+      const [sh, sm] = emp.workCondition.workStartTime.split(':').map(Number);
+      const [eh, em] = emp.workCondition.workEndTime.split(':').map(Number);
+      dailyHours = ((eh * 60 + em) - (sh * 60 + sm) - emp.workCondition.breakTime) / 60;
+    }
+    const actual = getWorkingDays(year, month, workDays, dailyHours);
+    const type = salaryType || emp?.salary.type || 'monthly';
+    return {
+      days: actual.days,
+      hours: type === 'monthly' ? MINIMUM_WAGE.monthlyHours : actual.hours,
+    };
+  }, []);
 
   // 직원 선택 시 정보 자동 입력
   const handleEmployeeSelect = (employeeId: string) => {
@@ -138,11 +160,17 @@ export default function PayslipPage() {
 
     const deptPosition = [employee.department, employee.position].filter(Boolean).join(' / ') || '';
     
+    const work = calcWorkInfo(payslip.year, payslip.month, employee);
     setPayslip(prev => ({
       ...prev,
       employee: {
         ...employee.info,
         address: deptPosition,
+      },
+      workInfo: {
+        ...prev.workInfo,
+        workDays: work.days,
+        totalWorkHours: work.hours,
       },
       earnings: {
         ...prev.earnings,
@@ -150,10 +178,13 @@ export default function PayslipPage() {
         mealAllowance: employee.salary.mealAllowance,
         transportAllowance: employee.salary.carAllowance,
         childcareAllowance: employee.salary.childcareAllowance,
+        researchAllowance: employee.salary.researchAllowance || 0,
       },
-      enabledAdditionalEarnings: employee.salary.childcareAllowance > 0 
-        ? [...prev.enabledAdditionalEarnings, 'childcareAllowance'] 
-        : prev.enabledAdditionalEarnings,
+      enabledAdditionalEarnings: [
+        ...prev.enabledAdditionalEarnings,
+        ...(employee.salary.childcareAllowance > 0 ? ['childcareAllowance' as AdditionalEarningKey] : []),
+        ...(employee.salary.researchAllowance > 0 ? ['researchAllowance' as AdditionalEarningKey] : []),
+      ],
     }));
   };
 
@@ -286,7 +317,12 @@ export default function PayslipPage() {
                 <select
                   className="input-field"
                   value={payslip.year}
-                  onChange={(e) => setPayslip(prev => ({ ...prev, year: parseInt(e.target.value) }))}
+                  onChange={(e) => {
+                    const newYear = parseInt(e.target.value);
+                    const emp = employees.find(emp => emp.id === selectedEmployeeId);
+                    const work = calcWorkInfo(newYear, payslip.month, emp, payslip.workInfo.salaryType);
+                    setPayslip(prev => ({ ...prev, year: newYear, workInfo: { ...prev.workInfo, workDays: work.days, totalWorkHours: work.hours } }));
+                  }}
                 >
                   {[2024, 2025, 2026].map(year => (
                     <option key={year} value={year}>{year}년</option>
@@ -298,7 +334,12 @@ export default function PayslipPage() {
                 <select
                   className="input-field"
                   value={payslip.month}
-                  onChange={(e) => setPayslip(prev => ({ ...prev, month: parseInt(e.target.value) }))}
+                  onChange={(e) => {
+                    const newMonth = parseInt(e.target.value);
+                    const emp = employees.find(emp => emp.id === selectedEmployeeId);
+                    const work = calcWorkInfo(payslip.year, newMonth, emp, payslip.workInfo.salaryType);
+                    setPayslip(prev => ({ ...prev, month: newMonth, workInfo: { ...prev.workInfo, workDays: work.days, totalWorkHours: work.hours } }));
+                  }}
                 >
                   {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                     <option key={month} value={month}>{month}월</option>
@@ -388,10 +429,15 @@ export default function PayslipPage() {
                 <select
                   className="input-field"
                   value={payslip.workInfo.salaryType}
-                  onChange={(e) => setPayslip(prev => ({ 
-                    ...prev, 
-                    workInfo: { ...prev.workInfo, salaryType: e.target.value as 'monthly' | 'hourly' }
-                  }))}
+                  onChange={(e) => {
+                    const newType = e.target.value as 'monthly' | 'hourly';
+                    const emp = employees.find(emp => emp.id === selectedEmployeeId);
+                    const work = calcWorkInfo(payslip.year, payslip.month, emp, newType);
+                    setPayslip(prev => ({
+                      ...prev,
+                      workInfo: { ...prev.workInfo, salaryType: newType, totalWorkHours: work.hours }
+                    }));
+                  }}
                 >
                   <option value="monthly">월급제</option>
                   <option value="hourly">시급제</option>

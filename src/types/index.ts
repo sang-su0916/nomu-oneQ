@@ -44,6 +44,7 @@ export interface Employee {
     mealAllowance: number;       // 식대 (비과세)
     carAllowance: number;        // 자가운전보조금 (비과세)
     childcareAllowance: number;  // 보육수당 (비과세)
+    researchAllowance: number;   // 연구보조비 (비과세)
     otherAllowances: {           // 기타 수당
       name: string;
       amount: number;
@@ -101,6 +102,7 @@ export interface PaymentRecord {
     mealAllowance: number;
     carAllowance: number;
     childcareAllowance: number;
+    researchAllowance: number;
     otherAllowances: { name: string; amount: number; taxable: boolean }[];
   };
   

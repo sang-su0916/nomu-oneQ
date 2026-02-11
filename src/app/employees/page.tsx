@@ -40,6 +40,7 @@ const defaultEmployee: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'> = {
     mealAllowance: 200000,
     carAllowance: 0,
     childcareAllowance: 0,
+    researchAllowance: 0,
     otherAllowances: [],
   },
   workCondition: {
@@ -147,8 +148,9 @@ export default function EmployeesPage() {
 
   // 현재 급여의 4대보험 계산
   const currentInsurance = calculateInsurance(formData.salary.baseSalary);
-  const totalGross = formData.salary.baseSalary + formData.salary.mealAllowance + 
-                     formData.salary.carAllowance + formData.salary.childcareAllowance;
+  const totalGross = formData.salary.baseSalary + formData.salary.mealAllowance +
+                     formData.salary.carAllowance + formData.salary.childcareAllowance +
+                     formData.salary.researchAllowance;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
@@ -229,7 +231,7 @@ export default function EmployeesPage() {
                     </td>
                     <td className="text-right font-medium">
                       {emp.salary.type === 'monthly' 
-                        ? formatCurrency(emp.salary.baseSalary + emp.salary.mealAllowance + emp.salary.carAllowance + emp.salary.childcareAllowance)
+                        ? formatCurrency(emp.salary.baseSalary + emp.salary.mealAllowance + emp.salary.carAllowance + emp.salary.childcareAllowance + (emp.salary.researchAllowance || 0))
                         : `시급 ${formatCurrency(emp.salary.hourlyWage || 0)}`
                       }
                     </td>
@@ -592,6 +594,23 @@ export default function EmployeesPage() {
                     />
                     <p className="text-xs text-gray-400 mt-1">
                       월 20만원 한도 비과세 (6세 이하 자녀)
+                    </p>
+                  </div>
+                )}
+                {formData.taxExemptOptions.isResearcher && (
+                  <div>
+                    <label className="input-label">연구보조비 (비과세)</label>
+                    <input
+                      type="number"
+                      className="input-field"
+                      value={formData.salary.researchAllowance || ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        salary: { ...prev.salary, researchAllowance: parseInt(e.target.value) || 0 }
+                      }))}
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      월 20만원 한도 비과세 (연구활동종사자)
                     </p>
                   </div>
                 )}

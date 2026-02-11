@@ -288,6 +288,109 @@ export function calculateInsurance(taxableIncome: number): InsuranceCalculation 
 }
 
 // ============================================
+// 한국 공휴일 및 근로일수 계산
+// ============================================
+
+// 고정 공휴일 (매년 동일)
+const FIXED_HOLIDAYS: [number, number][] = [
+  [1, 1],   // 신정
+  [3, 1],   // 삼일절
+  [5, 1],   // 근로자의 날
+  [5, 5],   // 어린이날
+  [6, 6],   // 현충일
+  [8, 15],  // 광복절
+  [10, 3],  // 개천절
+  [10, 9],  // 한글날
+  [12, 25], // 크리스마스
+];
+
+// 음력 기반 공휴일 (연도별 양력 변환, 대체공휴일 포함)
+const LUNAR_HOLIDAYS: Record<number, [number, number][]> = {
+  2024: [
+    [2, 9], [2, 10], [2, 11], [2, 12],  // 설날 + 대체
+    [5, 15],                              // 석가탄신일
+    [9, 16], [9, 17], [9, 18],           // 추석
+  ],
+  2025: [
+    [1, 28], [1, 29], [1, 30],           // 설날
+    [5, 6],                               // 석가탄신일 대체 (5/5 어린이날 겹침)
+    [10, 5], [10, 6], [10, 7], [10, 8],  // 추석 + 대체
+  ],
+  2026: [
+    [2, 16], [2, 17], [2, 18],           // 설날
+    [5, 24], [5, 25],                     // 석가탄신일 + 대체 (일요일)
+    [9, 24], [9, 25], [9, 26], [9, 28],  // 추석 + 대체 (토요일→월요일)
+  ],
+  2027: [
+    [2, 6], [2, 7], [2, 8], [2, 9],     // 설날 + 대체 (토요일→화요일)
+    [5, 13],                              // 석가탄신일
+    [10, 14], [10, 15], [10, 16], [10, 18], // 추석 + 대체 (토요일→월요일)
+  ],
+};
+
+const WEEKDAY_MAP: Record<string, number> = {
+  '일': 0, '월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6,
+};
+
+/**
+ * 해당 연도의 공휴일 Set을 반환 (YYYY-MM-DD 형식)
+ */
+export function getKoreanHolidays(year: number): Set<string> {
+  const holidays = new Set<string>();
+
+  // 고정 공휴일
+  for (const [m, d] of FIXED_HOLIDAYS) {
+    holidays.add(`${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+  }
+
+  // 음력 기반 공휴일
+  const lunar = LUNAR_HOLIDAYS[year];
+  if (lunar) {
+    for (const [m, d] of lunar) {
+      holidays.add(`${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    }
+  }
+
+  return holidays;
+}
+
+/**
+ * 해당 월의 근로일수와 총 근로시간을 계산
+ * @param year 연도
+ * @param month 월 (1-12)
+ * @param workDays 근무요일 (예: ['월', '화', '수', '목', '금'])
+ * @param dailyHours 일 소정근로시간 (기본 8시간)
+ */
+export function getWorkingDays(
+  year: number,
+  month: number,
+  workDays: string[] = ['월', '화', '수', '목', '금'],
+  dailyHours: number = 8
+): { days: number; hours: number } {
+  const holidays = getKoreanHolidays(year);
+  const workDayNums = new Set(workDays.map(d => WEEKDAY_MAP[d]).filter(n => n !== undefined));
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let count = 0;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month - 1, d);
+    const dayOfWeek = date.getDay();
+
+    // 해당 요일이 근무일인지 확인
+    if (!workDayNums.has(dayOfWeek)) continue;
+
+    // 공휴일 확인
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    if (holidays.has(dateStr)) continue;
+
+    count++;
+  }
+
+  return { days: count, hours: count * dailyHours };
+}
+
+// ============================================
 // 간이세액표 기반 소득세 계산
 // ============================================
 export function calculateIncomeTax(monthlyTaxable: number, dependents: number = 1): number {
