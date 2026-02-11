@@ -979,9 +979,15 @@ export default function PayslipPage() {
                 />
                 {payslip.workInfo.overtimeHours > 0 && payslip.earnings.baseSalary > 0 && (
                   <p className="text-xs text-blue-500 mt-1">
-                    {payslip.workInfo.overtimeNightHours > 0
-                      ? `${formatCurrency(Math.round(hourlyRate))}/h × (${payslip.workInfo.overtimeHours - payslip.workInfo.overtimeNightHours}h×1.5 + ${payslip.workInfo.overtimeNightHours}h×2.0)`
-                      : `${formatCurrency(Math.round(hourlyRate))}/h × 1.5 × ${payslip.workInfo.overtimeHours}h`}
+                    {(() => {
+                      const useAddition = payslip.businessSize === '5이상' || enableOvertimeAllowances;
+                      const rate = formatCurrency(Math.round(hourlyRate));
+                      if (payslip.workInfo.overtimeNightHours > 0 && useAddition) {
+                        return `${rate}/h × (${payslip.workInfo.overtimeHours - payslip.workInfo.overtimeNightHours}h×1.5 + ${payslip.workInfo.overtimeNightHours}h×2.0)`;
+                      }
+                      const multiplier = useAddition ? '1.5' : '1.0';
+                      return `${rate}/h × ${multiplier} × ${payslip.workInfo.overtimeHours}h`;
+                    })()}
                   </p>
                 )}
               </div>
@@ -1026,12 +1032,15 @@ export default function PayslipPage() {
                 {payslip.workInfo.holidayHours > 0 && payslip.earnings.baseSalary > 0 && (
                   <p className="text-xs text-blue-500 mt-1">
                     {(() => {
+                      const useAddition = payslip.businessSize === '5이상' || enableOvertimeAllowances;
                       const hh = payslip.workInfo.holidayHours;
                       const hn = payslip.workInfo.holidayNightHours;
                       const rateStr = formatCurrency(Math.round(hourlyRate));
-                      if (hn > 0) return `${rateStr}/h × 휴일${hh}h (야간${hn}h 중복, 최대 2.5배)`;
-                      if (hh <= 8) return `${rateStr}/h × 1.5 × ${hh}h`;
-                      return `${rateStr}/h × (8h×1.5 + ${hh - 8}h×2.0)`;
+                      if (hn > 0 && useAddition) return `${rateStr}/h × 휴일${hh}h (야간${hn}h 중복, 최대 2.5배)`;
+                      const multiplier = useAddition ? '1.5' : '1.0';
+                      if (hh <= 8) return `${rateStr}/h × ${multiplier} × ${hh}h`;
+                      if (useAddition) return `${rateStr}/h × (8h×1.5 + ${hh - 8}h×2.0)`;
+                      return `${rateStr}/h × 1.0 × ${hh}h`;
                     })()}
                   </p>
                 )}
