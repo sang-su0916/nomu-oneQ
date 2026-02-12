@@ -34,6 +34,7 @@ interface ParttimeContractData {
   flexibleSchedule: WorkSchedule[];
   weeklyHours: number;
   weeklyHoliday: string;
+  weeklyHolidayDays: string[];
   hourlyWage: number;
   mealAllowance: number;
   vehicleAllowance: number;
@@ -88,6 +89,7 @@ const defaultContract: ParttimeContractData = {
   flexibleSchedule: defaultFlexibleSchedule,
   weeklyHours: 15,
   weeklyHoliday: '매주 일요일',
+  weeklyHolidayDays: [],
   hourlyWage: 10320,  // 2026년 최저임금
   mealAllowance: 0,
   vehicleAllowance: 0,
@@ -240,6 +242,15 @@ export default function ParttimeContractPage() {
     });
   };
 
+  const toggleWeeklyHolidayDay = (day: string) => {
+    setContract(prev => ({
+      ...prev,
+      weeklyHolidayDays: prev.weeklyHolidayDays.includes(day)
+        ? prev.weeklyHolidayDays.filter(d => d !== day)
+        : [...prev.weeklyHolidayDays, day]
+    }));
+  };
+
   const toggleInsurance = (key: keyof typeof contract.insurance) => {
     setContract(prev => ({
       ...prev,
@@ -272,11 +283,13 @@ export default function ParttimeContractPage() {
       </div>
 
       <HelpGuide
-        pageKey="contract-parttime"
+        pageKey="contract-parttime-v2"
         steps={[
-          '직원 선택 후 시급과 주간 근무시간을 정확히 입력하세요.',
-          '시급이 최저임금 미만이면 경고가 표시됩니다.',
-          '"미리보기"로 확인 후 "인쇄/PDF"로 출력하세요.',
+          '직원 선택: "등록된 직원에서 선택"을 누르면 정보가 자동 입력됩니다. 등록된 직원이 없으면 직접 입력하세요.',
+          '근로시간: "고정 스케줄"은 매일 같은 시간, "요일별 상이"는 요일마다 다른 시간을 설정합니다. 주 소정근로시간이 자동 계산되며, 15시간 이상이면 주휴수당이 발생합니다.',
+          '주휴일: "직접 선택"을 고르면 원하는 요일을 자유롭게 지정할 수 있습니다.',
+          '시급: 2026년 최저임금(10,320원) 미만이면 경고가 표시되고 인쇄가 차단됩니다. 반드시 최저임금 이상으로 입력하세요.',
+          '출력: "미리보기"로 확인 후 "인쇄/PDF"로 출력하세요. 단시간 근로자는 근로일별 근로시간을 반드시 서면 명시해야 합니다 (근로기준법 제17조).',
         ]}
       />
 
@@ -598,12 +611,41 @@ export default function ParttimeContractPage() {
               <select
                 className="input-field"
                 value={contract.weeklyHoliday}
-                onChange={(e) => updateContract('weeklyHoliday', e.target.value)}
+                onChange={(e) => {
+                  updateContract('weeklyHoliday', e.target.value);
+                  if (e.target.value !== '직접 선택') {
+                    updateContract('weeklyHolidayDays', []);
+                  }
+                }}
               >
                 <option value="매주 일요일">매주 일요일</option>
                 <option value="매주 토요일">매주 토요일</option>
                 <option value="주 1회 (별도 지정)">주 1회 (별도 지정)</option>
+                <option value="직접 선택">직접 선택</option>
               </select>
+              {contract.weeklyHoliday === '직접 선택' && (
+                <>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {WEEKDAYS.map(day => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleWeeklyHolidayDay(day)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          contract.weeklyHolidayDays.includes(day)
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                  {contract.weeklyHolidayDays.length === 0 && (
+                    <p className="text-red-500 text-xs mt-1 font-medium">주휴일을 1일 이상 선택해주세요.</p>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
@@ -795,6 +837,13 @@ function ParttimeContractPreview({ contract }: { contract: ParttimeContractData 
   // 연차휴가 비례 계산 (주 15시간 이상일 경우)
   const annualLeaveRatio = contract.weeklyHours >= 15 ? (contract.weeklyHours / 40 * 15) : 0;
 
+  // 주휴일 표시 텍스트
+  const weeklyHolidayDisplay = contract.weeklyHoliday === '직접 선택'
+    ? (contract.weeklyHolidayDays.length > 0
+      ? `매주 ${contract.weeklyHolidayDays.map(d => `${d}요일`).join(', ')}`
+      : '별도 지정')
+    : contract.weeklyHoliday;
+
   const cellStyle = { border: '1px solid #d1d5db', padding: '10px 14px', verticalAlign: 'top' as const };
   const headerStyle = { ...cellStyle, backgroundColor: '#faf5ff', fontWeight: 600, width: '140px', color: '#6b21a8' };
   const sectionHeaderStyle = { 
@@ -927,7 +976,7 @@ function ParttimeContractPreview({ contract }: { contract: ParttimeContractData 
           <tr>
             <th style={headerStyle}>주휴일</th>
             <td style={cellStyle}>
-              <strong>{contract.weeklyHoliday}</strong> {contract.weeklyHours >= 15 ? '(유급)' : '(무급)'}
+              <strong>{weeklyHolidayDisplay}</strong> {contract.weeklyHours >= 15 ? '(유급)' : '(무급)'}
               <br />
               <span style={{ color: '#6b7280', fontSize: '13px' }}>
                 ※ 주 15시간 이상 근무 시 유급 주휴일 부여

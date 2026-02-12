@@ -7,6 +7,14 @@ import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatCurrency, format
 import { MINIMUM_WAGE } from '@/lib/constants';
 import HelpGuide from '@/components/HelpGuide';
 
+interface WorkSchedule {
+  day: string;
+  startTime: string;
+  endTime: string;
+  breakTime: number;
+  hours: number;
+}
+
 interface ContractData {
   company: CompanyInfo;
   employee: EmployeeInfo;
@@ -16,11 +24,14 @@ interface ContractData {
   jobDescription: string;
   position: string;
   department: string;
+  scheduleType: 'fixed' | 'flexible';
   workStartTime: string;
   workEndTime: string;
   breakTime: number;
   workDays: string[];
+  flexibleSchedule: WorkSchedule[];
   weeklyHoliday: string;
+  weeklyHolidayDays: string[];
   baseSalary: number;
   annualSalary: number;
   salaryType: string;
@@ -54,6 +65,16 @@ const defaultEmployee: EmployeeInfo = {
   phone: '',
 };
 
+const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
+
+const defaultFlexibleSchedule: WorkSchedule[] = WEEKDAYS.map(day => ({
+  day,
+  startTime: '',
+  endTime: '',
+  breakTime: 0,
+  hours: 0,
+}));
+
 const defaultContract: ContractData = {
   company: defaultCompanyInfo,
   employee: defaultEmployee,
@@ -63,11 +84,14 @@ const defaultContract: ContractData = {
   jobDescription: '',
   position: '',
   department: '',
+  scheduleType: 'fixed',
   workStartTime: '09:00',
   workEndTime: '18:00',
   breakTime: 60,
   workDays: ['월', '화', '수', '목', '금'],
+  flexibleSchedule: defaultFlexibleSchedule,
   weeklyHoliday: '매주 토요일, 일요일',
+  weeklyHolidayDays: [],
   baseSalary: 0,
   annualSalary: 0,
   salaryType: '월급',
@@ -93,8 +117,6 @@ const defaultContract: ContractData = {
   },
   specialTerms: '',
 };
-
-const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
 export default function FulltimeContractPage() {
   const [contract, setContract] = useState<ContractData>(() => {
@@ -170,6 +192,31 @@ export default function FulltimeContractPage() {
     }));
   };
 
+  const updateFlexibleSchedule = (index: number, field: keyof WorkSchedule, value: string | number) => {
+    setContract(prev => {
+      const newSchedule = [...prev.flexibleSchedule];
+      newSchedule[index] = { ...newSchedule[index], [field]: value };
+
+      if (newSchedule[index].startTime && newSchedule[index].endTime) {
+        const start = newSchedule[index].startTime.split(':').map(Number);
+        const end = newSchedule[index].endTime.split(':').map(Number);
+        const minutes = (end[0] * 60 + end[1]) - (start[0] * 60 + start[1]) - (newSchedule[index].breakTime || 0);
+        newSchedule[index].hours = Math.round(Math.max(0, minutes) / 60 * 10) / 10;
+      }
+
+      return { ...prev, flexibleSchedule: newSchedule };
+    });
+  };
+
+  const toggleWeeklyHolidayDay = (day: string) => {
+    setContract(prev => ({
+      ...prev,
+      weeklyHolidayDays: prev.weeklyHolidayDays.includes(day)
+        ? prev.weeklyHolidayDays.filter(d => d !== day)
+        : [...prev.weeklyHolidayDays, day]
+    }));
+  };
+
   const toggleInsurance = (key: keyof typeof contract.insurance) => {
     setContract(prev => ({
       ...prev,
@@ -202,11 +249,13 @@ export default function FulltimeContractPage() {
       </div>
 
       <HelpGuide
-        pageKey="contract-fulltime"
+        pageKey="contract-fulltime-v2"
         steps={[
-          '상단 "직원 선택"에서 등록된 직원을 선택하면 정보가 자동 입력됩니다.',
-          '근무 조건(근무시간, 급여 등)을 확인하고 필요시 수정하세요.',
-          '"미리보기"로 완성된 계약서를 확인한 뒤 "인쇄/PDF"로 출력하세요.',
+          '직원 선택: "등록된 직원에서 선택"을 누르면 이름, 주소, 급여 등이 자동으로 입력됩니다. 직원이 없으면 직접 입력도 가능합니다.',
+          '근로시간: "고정 스케줄"은 매일 같은 시간, "요일별 상이"는 요일마다 다른 시간을 입력할 수 있습니다. 병원, 교대근무 등 요일별 근무시간이 다른 경우 "요일별 상이"를 선택하세요.',
+          '주휴일: 기본 옵션 외에 "직접 선택"을 고르면 원하는 요일을 자유롭게 지정할 수 있습니다. 주 7일 운영 사업장에서 유용합니다.',
+          '급여: 연봉을 입력하면 월급이 자동 계산됩니다. 비과세 수당(식대, 차량 등)도 빠짐없이 입력하세요.',
+          '출력: "미리보기"로 완성된 계약서를 확인한 뒤 "인쇄/PDF" 버튼으로 출력하세요. 근로기준법 제17조에 따라 반드시 근로자에게 1부를 교부해야 합니다.',
         ]}
       />
 
@@ -445,101 +494,228 @@ export default function FulltimeContractPage() {
           {/* 근로시간 */}
           <div className="form-section">
             <h2 className="form-section-title">⏰ 근로시간</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="input-label">시작 시간</label>
-                <input
-                  type="time"
-                  className="input-field"
-                  value={contract.workStartTime}
-                  onChange={(e) => updateContract('workStartTime', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="input-label">종료 시간</label>
-                <input
-                  type="time"
-                  className="input-field"
-                  value={contract.workEndTime}
-                  onChange={(e) => updateContract('workEndTime', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="input-label">휴게시간 (분)</label>
-                <input
-                  type="number"
-                  className="input-field"
-                  value={contract.breakTime}
-                  onChange={(e) => updateContract('breakTime', parseInt(e.target.value) || 0)}
-                />
+
+            <div className="mb-4">
+              <label className="input-label">근무 형태</label>
+              <div className="flex gap-4 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="scheduleType"
+                    checked={contract.scheduleType === 'fixed'}
+                    onChange={() => updateContract('scheduleType', 'fixed')}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span>고정 스케줄</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="scheduleType"
+                    checked={contract.scheduleType === 'flexible'}
+                    onChange={() => updateContract('scheduleType', 'flexible')}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span>요일별 상이</span>
+                </label>
               </div>
             </div>
-            <div className="mt-4">
-              <label className="input-label">근무 요일</label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {WEEKDAYS.map(day => (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => toggleWorkDay(day)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      contract.workDays.includes(day)
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {day}
-                  </button>
-                ))}
+
+            {contract.scheduleType === 'fixed' ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="input-label">시작 시간</label>
+                    <input
+                      type="time"
+                      className="input-field"
+                      value={contract.workStartTime}
+                      onChange={(e) => updateContract('workStartTime', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="input-label">종료 시간</label>
+                    <input
+                      type="time"
+                      className="input-field"
+                      value={contract.workEndTime}
+                      onChange={(e) => updateContract('workEndTime', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="input-label">휴게시간 (분)</label>
+                    <input
+                      type="number"
+                      className="input-field"
+                      value={contract.breakTime}
+                      onChange={(e) => updateContract('breakTime', parseInt(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="input-label">근무 요일</label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {WEEKDAYS.map(day => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleWorkDay(day)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          contract.workDays.includes(day)
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-blue-50">
+                      <th className="border p-2 text-left">요일</th>
+                      <th className="border p-2">시작</th>
+                      <th className="border p-2">종료</th>
+                      <th className="border p-2">휴게(분)</th>
+                      <th className="border p-2">근로시간</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contract.flexibleSchedule.map((schedule, index) => (
+                      <tr key={schedule.day}>
+                        <td className="border p-2 font-medium">{schedule.day}요일</td>
+                        <td className="border p-2">
+                          <input
+                            type="time"
+                            className="input-field py-1"
+                            value={schedule.startTime}
+                            onChange={(e) => updateFlexibleSchedule(index, 'startTime', e.target.value)}
+                          />
+                        </td>
+                        <td className="border p-2">
+                          <input
+                            type="time"
+                            className="input-field py-1"
+                            value={schedule.endTime}
+                            onChange={(e) => updateFlexibleSchedule(index, 'endTime', e.target.value)}
+                          />
+                        </td>
+                        <td className="border p-2">
+                          <input
+                            type="number"
+                            className="input-field py-1 w-20"
+                            value={schedule.breakTime || ''}
+                            onChange={(e) => updateFlexibleSchedule(index, 'breakTime', parseInt(e.target.value) || 0)}
+                          />
+                        </td>
+                        <td className="border p-2 text-center font-medium text-blue-600">
+                          {schedule.hours > 0 ? `${schedule.hours}시간` : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              {/* 실시간 근로시간 계산 표시 */}
-              {contract.workDays.length > 0 && (() => {
+            )}
+
+            {/* 실시간 근로시간 계산 표시 */}
+            {(() => {
+              let rawWeeklyHours = 0;
+              let dailyHours = 0;
+              let dailyMins = 0;
+              let workDayCount = 0;
+
+              if (contract.scheduleType === 'fixed' && contract.workDays.length > 0) {
                 const startHour = parseInt(contract.workStartTime.split(':')[0]);
                 const startMin = parseInt(contract.workStartTime.split(':')[1]);
                 const endHour = parseInt(contract.workEndTime.split(':')[0]);
                 const endMin = parseInt(contract.workEndTime.split(':')[1]);
                 const totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin) - contract.breakTime;
-                const dailyHours = Math.floor(totalMinutes / 60);
-                const dailyMins = totalMinutes % 60;
-                const rawWeeklyHours = totalMinutes * contract.workDays.length / 60;
-                const weeklyPrescribedHours = Math.min(rawWeeklyHours, 40);
-                const weeklyOvertimeHours = Math.max(rawWeeklyHours - 40, 0);
+                dailyHours = Math.floor(totalMinutes / 60);
+                dailyMins = totalMinutes % 60;
+                rawWeeklyHours = totalMinutes * contract.workDays.length / 60;
+                workDayCount = contract.workDays.length;
+              } else if (contract.scheduleType === 'flexible') {
+                const activeSchedules = contract.flexibleSchedule.filter(s => s.hours > 0);
+                rawWeeklyHours = activeSchedules.reduce((sum, s) => sum + s.hours, 0);
+                workDayCount = activeSchedules.length;
+              }
 
-                return (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      <strong>📊 계산된 근로시간</strong>
-                    </p>
+              if (workDayCount === 0) return null;
+
+              const weeklyPrescribedHours = Math.min(rawWeeklyHours, 40);
+              const weeklyOvertimeHours = Math.max(rawWeeklyHours - 40, 0);
+
+              return (
+                <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800">
+                    <strong>📊 계산된 근로시간</strong>
+                  </p>
+                  {contract.scheduleType === 'fixed' && (
                     <p className="text-sm text-blue-700 mt-1">
                       • 1일 소정근로시간: <strong>{dailyHours}시간 {dailyMins > 0 ? `${dailyMins}분` : ''}</strong>
                     </p>
-                    <p className="text-sm text-blue-700">
-                      • 주 소정근로시간: <strong>{weeklyPrescribedHours}시간</strong> (법정상한)
+                  )}
+                  <p className="text-sm text-blue-700">
+                    • 주 소정근로시간: <strong>{weeklyPrescribedHours}시간</strong> (법정상한)
+                  </p>
+                  {weeklyOvertimeHours > 0 && (
+                    <p className="text-sm text-red-600 font-medium mt-1">
+                      ⚠️ 주 연장근로시간: <strong>{weeklyOvertimeHours.toFixed(1)}시간</strong> (통상임금 50% 가산)
                     </p>
-                    {weeklyOvertimeHours > 0 && (
-                      <p className="text-sm text-red-600 font-medium mt-1">
-                        ⚠️ 주 연장근로시간: <strong>{weeklyOvertimeHours}시간</strong> (통상임금 50% 가산)
-                      </p>
-                    )}
-                    <p className="text-xs text-blue-600 mt-2">
-                      ※ 근로기준법 제50조: 주 소정근로시간은 40시간이 상한입니다.
-                    </p>
-                  </div>
-                );
-              })()}
-            </div>
+                  )}
+                  <p className="text-xs text-blue-600 mt-2">
+                    ※ 근로기준법 제50조: 주 소정근로시간은 40시간이 상한입니다.
+                  </p>
+                </div>
+              );
+            })()}
+
             <div className="mt-4">
               <label className="input-label">주휴일 *</label>
               <select
                 className="input-field"
                 value={contract.weeklyHoliday}
-                onChange={(e) => updateContract('weeklyHoliday', e.target.value)}
+                onChange={(e) => {
+                  updateContract('weeklyHoliday', e.target.value);
+                  if (e.target.value !== '직접 선택') {
+                    updateContract('weeklyHolidayDays', []);
+                  }
+                }}
               >
                 <option value="매주 일요일">매주 일요일</option>
                 <option value="매주 토요일">매주 토요일</option>
                 <option value="매주 토요일, 일요일">매주 토요일, 일요일</option>
                 <option value="주 1회 (별도 지정)">주 1회 (별도 지정)</option>
+                <option value="직접 선택">직접 선택</option>
               </select>
+              {contract.weeklyHoliday === '직접 선택' && (
+                <>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {WEEKDAYS.map(day => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleWeeklyHolidayDay(day)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          contract.weeklyHolidayDays.includes(day)
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                  {contract.weeklyHolidayDays.length === 0 && (
+                    <p className="text-red-500 text-xs mt-1 font-medium">주휴일을 1일 이상 선택해주세요.</p>
+                  )}
+                </>
+              )}
               <p className="text-xs text-gray-400 mt-1">
                 근로기준법 제55조 - 1주 1회 이상 유급휴일 필수
               </p>
@@ -835,21 +1011,41 @@ function ContractPreview({ contract }: { contract: ContractData }) {
   if (contract.insurance.industrial) insuranceList.push('산재보험');
 
   // 소정근로시간 계산
-  const startHour = parseInt(contract.workStartTime.split(':')[0]);
-  const startMin = parseInt(contract.workStartTime.split(':')[1]);
-  const endHour = parseInt(contract.workEndTime.split(':')[0]);
-  const endMin = parseInt(contract.workEndTime.split(':')[1]);
-  const totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin) - contract.breakTime;
-  const dailyHours = Math.floor(totalMinutes / 60);
-  const dailyMins = totalMinutes % 60;
-  const rawWeeklyHours = totalMinutes * contract.workDays.length / 60;
+  let dailyHours = 0;
+  let dailyMins = 0;
+  let rawWeeklyHours = 0;
+  let workDayCount = 0;
+
+  if (contract.scheduleType === 'flexible') {
+    const activeSchedules = contract.flexibleSchedule.filter(s => s.hours > 0);
+    rawWeeklyHours = activeSchedules.reduce((sum, s) => sum + s.hours, 0);
+    workDayCount = activeSchedules.length;
+  } else {
+    const startHour = parseInt(contract.workStartTime.split(':')[0]);
+    const startMin = parseInt(contract.workStartTime.split(':')[1]);
+    const endHour = parseInt(contract.workEndTime.split(':')[0]);
+    const endMin = parseInt(contract.workEndTime.split(':')[1]);
+    const totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin) - contract.breakTime;
+    dailyHours = Math.floor(totalMinutes / 60);
+    dailyMins = totalMinutes % 60;
+    rawWeeklyHours = totalMinutes * contract.workDays.length / 60;
+    workDayCount = contract.workDays.length;
+  }
+
   // 근로기준법 제50조: 주 소정근로시간은 40시간 상한
   const weeklyPrescribedHours = Math.min(rawWeeklyHours, 40);
   const weeklyOvertimeHours = Math.max(rawWeeklyHours - 40, 0);
 
   // 월 소정근로시간 동적 계산: (주 소정근로시간 + 유급주휴시간) × (365/12/7)
-  const dailyPrescribedHours = contract.workDays.length > 0 ? weeklyPrescribedHours / contract.workDays.length : 8;
+  const dailyPrescribedHours = workDayCount > 0 ? weeklyPrescribedHours / workDayCount : 8;
   const monthlyPrescribedHours = Math.round((weeklyPrescribedHours + dailyPrescribedHours) * 365 / 12 / 7);
+
+  // 주휴일 표시 텍스트
+  const weeklyHolidayDisplay = contract.weeklyHoliday === '직접 선택'
+    ? (contract.weeklyHolidayDays.length > 0
+      ? `매주 ${contract.weeklyHolidayDays.map(d => `${d}요일`).join(', ')}`
+      : '별도 지정')
+    : contract.weeklyHoliday;
 
   // 총 월급 계산 (기타수당 금액 포함)
   const totalMonthlySalary = contract.baseSalary + (contract.mealAllowance || 0) + (contract.transportAllowance || 0) + (contract.childcareAllowance || 0) + (contract.researchAllowance || 0) + (contract.vehicleAllowance || 0) + (contract.otherAllowanceAmount || 0);
@@ -932,32 +1128,75 @@ function ContractPreview({ contract }: { contract: ContractData }) {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <th style={headerStyle}>근로시간</th>
-            <td style={cellStyle}>
-              <strong>{contract.workStartTime}</strong> ~ <strong>{contract.workEndTime}</strong><br />
-              <span style={{ color: '#6b7280', fontSize: '13px' }}>
-                (1일 소정근로시간: {dailyHours}시간 {dailyMins > 0 ? `${dailyMins}분` : ''},
-                주 소정근로시간: {weeklyPrescribedHours}시간)
-              </span>
-              {weeklyOvertimeHours > 0 && (
-                <>
-                  <br />
-                  <span style={{ color: '#dc2626', fontSize: '13px', fontWeight: 600 }}>
-                    ※ 주 연장근로시간: {weeklyOvertimeHours}시간 (통상임금의 50% 가산)
+          {contract.scheduleType === 'flexible' ? (
+            <tr>
+              <th style={headerStyle}>근로시간</th>
+              <td style={cellStyle}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '8px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc' }}>
+                      <th style={{ border: '1px solid #d1d5db', padding: '6px 8px', fontSize: '12px' }}>요일</th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '6px 8px', fontSize: '12px' }}>근무시간</th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '6px 8px', fontSize: '12px' }}>휴게</th>
+                      <th style={{ border: '1px solid #d1d5db', padding: '6px 8px', fontSize: '12px' }}>근로시간</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contract.flexibleSchedule.filter(s => s.startTime && s.endTime).map(schedule => (
+                      <tr key={schedule.day}>
+                        <td style={{ border: '1px solid #d1d5db', padding: '6px 8px', textAlign: 'center', fontSize: '13px' }}>{schedule.day}요일</td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '6px 8px', textAlign: 'center', fontSize: '13px' }}>
+                          {schedule.startTime} ~ {schedule.endTime}
+                        </td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '6px 8px', textAlign: 'center', fontSize: '13px' }}>{schedule.breakTime}분</td>
+                        <td style={{ border: '1px solid #d1d5db', padding: '6px 8px', textAlign: 'center', fontSize: '13px', fontWeight: 600 }}>{schedule.hours}시간</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <span style={{ color: '#6b7280', fontSize: '13px' }}>
+                  (주 소정근로시간: {weeklyPrescribedHours}시간)
+                </span>
+                {weeklyOvertimeHours > 0 && (
+                  <>
+                    <br />
+                    <span style={{ color: '#dc2626', fontSize: '13px', fontWeight: 600 }}>
+                      ※ 주 연장근로시간: {weeklyOvertimeHours.toFixed(1)}시간 (통상임금의 50% 가산)
+                    </span>
+                  </>
+                )}
+              </td>
+            </tr>
+          ) : (
+            <>
+              <tr>
+                <th style={headerStyle}>근로시간</th>
+                <td style={cellStyle}>
+                  <strong>{contract.workStartTime}</strong> ~ <strong>{contract.workEndTime}</strong><br />
+                  <span style={{ color: '#6b7280', fontSize: '13px' }}>
+                    (1일 소정근로시간: {dailyHours}시간 {dailyMins > 0 ? `${dailyMins}분` : ''},
+                    주 소정근로시간: {weeklyPrescribedHours}시간)
                   </span>
-                </>
-              )}
-            </td>
-          </tr>
-          <tr>
-            <th style={headerStyle}>휴게시간</th>
-            <td style={cellStyle}>{contract.breakTime}분 (근로시간 도중 자유롭게 이용)</td>
-          </tr>
-          <tr>
-            <th style={headerStyle}>근무요일</th>
-            <td style={cellStyle}>{contract.workDays.join(', ')} (주 {contract.workDays.length}일)</td>
-          </tr>
+                  {weeklyOvertimeHours > 0 && (
+                    <>
+                      <br />
+                      <span style={{ color: '#dc2626', fontSize: '13px', fontWeight: 600 }}>
+                        ※ 주 연장근로시간: {weeklyOvertimeHours}시간 (통상임금의 50% 가산)
+                      </span>
+                    </>
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <th style={headerStyle}>휴게시간</th>
+                <td style={cellStyle}>{contract.breakTime}분 (근로시간 도중 자유롭게 이용)</td>
+              </tr>
+              <tr>
+                <th style={headerStyle}>근무요일</th>
+                <td style={cellStyle}>{contract.workDays.join(', ')} (주 {contract.workDays.length}일)</td>
+              </tr>
+            </>
+          )}
           <tr>
             <th style={headerStyle}>연장근로</th>
             <td style={cellStyle}>
@@ -981,7 +1220,7 @@ function ContractPreview({ contract }: { contract: ContractData }) {
           <tr>
             <th style={headerStyle}>주휴일</th>
             <td style={cellStyle}>
-              <strong>{contract.weeklyHoliday}</strong> (유급)
+              <strong>{weeklyHolidayDisplay}</strong> (유급)
             </td>
           </tr>
           <tr>
