@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee as RegisteredEmployee, PaymentRecord } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatCurrency, formatBusinessNumber, getActiveEmployees, getPaymentRecordsByMonth } from '@/lib/storage';
@@ -62,20 +62,25 @@ const createEmptyEmployee = (): LedgerEmployee => ({
 export default function WageLedgerPage() {
   const [data, setData] = useState<WageLedgerData>(() => {
     const today = new Date();
-    const base: WageLedgerData = {
+    return {
       company: defaultCompanyInfo,
       year: today.getFullYear(),
       month: today.getMonth() + 1,
       employees: [],
     };
-    if (typeof window === 'undefined') return base;
-    const saved = loadCompanyInfo();
-    return saved ? { ...base, company: saved } : base;
   });
+
   // 등록된 직원 불러오기
-  const [registeredEmployees] = useState<RegisteredEmployee[]>(() =>
-    typeof window !== 'undefined' ? getActiveEmployees() : []
-  );
+  const [registeredEmployees, setRegisteredEmployees] = useState<RegisteredEmployee[]>([]);
+
+  // 클라이언트에서만 데이터 로드
+  useEffect(() => {
+    const saved = loadCompanyInfo();
+    if (saved) {
+      setData(prev => ({ ...prev, company: saved }));
+    }
+    setRegisteredEmployees(getActiveEmployees());
+  }, []);
   const [showPreview, setShowPreview] = useState(false);
   const [showSelector, setShowSelector] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
