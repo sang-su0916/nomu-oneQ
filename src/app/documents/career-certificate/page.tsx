@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatBusinessNumber, formatResidentNumber, loadEmployees } from '@/lib/storage';
@@ -24,34 +24,39 @@ interface CareerCertData {
 
 const purposes = ['이직용', '관공서 제출용', '기타'];
 
-const defaultData: CareerCertData = {
-  company: defaultCompanyInfo,
-  employeeName: '',
-  residentNumber: '',
-  address: '',
-  department: '',
-  position: '',
-  hireDate: '',
-  resignDate: '',
-  jobDuties: '',
-  purpose: '이직용',
-  customPurpose: '',
-  issueDate: new Date().toISOString().split('T')[0],
-  documentNumber: `제 ${new Date().getFullYear()}-001 호`,
-};
+function createDefaultData(): CareerCertData {
+  const today = new Date();
+  return {
+    company: defaultCompanyInfo,
+    employeeName: '',
+    residentNumber: '',
+    address: '',
+    department: '',
+    position: '',
+    hireDate: '',
+    resignDate: '',
+    jobDuties: '',
+    purpose: '이직용',
+    customPurpose: '',
+    issueDate: today.toISOString().split('T')[0],
+    documentNumber: `제 ${today.getFullYear()}-001 호`,
+  };
+}
 
 export default function CareerCertificatePage() {
-  const [data, setData] = useState<CareerCertData>(() => {
-    if (typeof window === 'undefined') return defaultData;
-    const saved = loadCompanyInfo();
-    return saved ? { ...defaultData, company: saved } : defaultData;
-  });
+  const [data, setData] = useState<CareerCertData>(createDefaultData);
   const [showPreview, setShowPreview] = useState(false);
-  // 경력증명서는 퇴사자도 포함
-  const [employees] = useState<Employee[]>(() =>
-    typeof window !== 'undefined' ? loadEmployees() : []
-  );
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+
+  // 클라이언트에서만 데이터 로드
+  useEffect(() => {
+    const saved = loadCompanyInfo();
+    if (saved) {
+      setData(prev => ({ ...prev, company: saved }));
+    }
+    setEmployees(loadEmployees());
+  }, []);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handleEmployeeSelect = (id: string) => {
