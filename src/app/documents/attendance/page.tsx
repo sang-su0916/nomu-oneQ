@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, getActiveEmployees } from '@/lib/storage';
@@ -68,11 +68,10 @@ function createRecords(year: number, month: number): DayRecord[] {
   }));
 }
 
-const now = new Date();
-
 export default function AttendancePage() {
   const [data, setData] = useState<AttendanceData>(() => {
-    const base: AttendanceData = {
+    const now = new Date();
+    return {
       company: defaultCompanyInfo,
       employeeName: '',
       department: '',
@@ -80,15 +79,19 @@ export default function AttendancePage() {
       month: now.getMonth() + 1,
       records: createRecords(now.getFullYear(), now.getMonth() + 1),
     };
-    if (typeof window === 'undefined') return base;
-    const saved = loadCompanyInfo();
-    return saved ? { ...base, company: saved } : base;
   });
   const [showPreview, setShowPreview] = useState(false);
-  const [employees] = useState<Employee[]>(() =>
-    typeof window !== 'undefined' ? getActiveEmployees() : []
-  );
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+
+  // 클라이언트에서만 데이터 로드
+  useEffect(() => {
+    const saved = loadCompanyInfo();
+    if (saved) {
+      setData(prev => ({ ...prev, company: saved }));
+    }
+    setEmployees(getActiveEmployees());
+  }, []);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handleYearMonthChange = (year: number, month: number) => {
@@ -150,7 +153,7 @@ export default function AttendancePage() {
               <div>
                 <label className="input-label">연도</label>
                 <input type="number" className="input-field" value={data.year}
-                  onChange={e => handleYearMonthChange(parseInt(e.target.value) || now.getFullYear(), data.month)} />
+                  onChange={e => handleYearMonthChange(parseInt(e.target.value) || data.year, data.month)} />
               </div>
               <div>
                 <label className="input-label">월</label>

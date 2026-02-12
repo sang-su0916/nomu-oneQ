@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, EmployeeInfo, Employee, PaymentRecord } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatCurrency, formatBusinessNumber, getActiveEmployees, addPaymentRecord, generateId } from '@/lib/storage';
@@ -197,64 +197,71 @@ const defaultEmployee: EmployeeInfo = {
   phone: '',
 };
 
-const today = new Date();
-
-const defaultPayslip: PayslipData = {
-  company: defaultCompanyInfo,
-  employee: defaultEmployee,
-  employeeId: '',
-  year: today.getFullYear(),
-  month: today.getMonth() + 1,
-  paymentDate: today.toISOString().split('T')[0],
-  businessSize: '5이상',
-  workInfo: {
-    workDays: 0,
-    totalWorkHours: 0,
-    overtimeHours: 0,
-    nightHours: 0,
-    holidayHours: 0,
-    overtimeNightHours: 0,
-    holidayNightHours: 0,
-    salaryType: 'monthly',
-  },
-  earnings: {
-    baseSalary: 0,
-    overtime: 0,
-    nightWork: 0,
-    holidayWork: 0,
-    bonus: 0,
-    mealAllowance: 0,
-    transportAllowance: 0,
-    otherAllowance: 0,
-  },
-  deductions: {
-    nationalPension: 0,
-    healthInsurance: 0,
-    longTermCare: 0,
-    employmentInsurance: 0,
-    incomeTax: 0,
-    localTax: 0,
-  },
-  enabledAdditionalEarnings: [],
-};
+function createDefaultPayslip(): PayslipData {
+  const today = new Date();
+  return {
+    company: defaultCompanyInfo,
+    employee: defaultEmployee,
+    employeeId: '',
+    year: today.getFullYear(),
+    month: today.getMonth() + 1,
+    paymentDate: today.toISOString().split('T')[0],
+    businessSize: '5이상',
+    workInfo: {
+      workDays: 0,
+      totalWorkHours: 0,
+      overtimeHours: 0,
+      nightHours: 0,
+      holidayHours: 0,
+      overtimeNightHours: 0,
+      holidayNightHours: 0,
+      salaryType: 'monthly',
+    },
+    earnings: {
+      baseSalary: 0,
+      overtime: 0,
+      nightWork: 0,
+      holidayWork: 0,
+      bonus: 0,
+      mealAllowance: 0,
+      transportAllowance: 0,
+      otherAllowance: 0,
+    },
+    deductions: {
+      nationalPension: 0,
+      healthInsurance: 0,
+      longTermCare: 0,
+      employmentInsurance: 0,
+      incomeTax: 0,
+      localTax: 0,
+    },
+    enabledAdditionalEarnings: [],
+  };
+}
 
 export default function PayslipPage() {
   const [payslip, setPayslip] = useState<PayslipData>(() => {
-    if (typeof window === 'undefined') return defaultPayslip;
-    const saved = loadCompanyInfo();
+    const today = new Date();
+    const defaultPayslip = createDefaultPayslip();
     const initialWork = getWorkingDays(today.getFullYear(), today.getMonth() + 1);
-    const base = saved ? { ...defaultPayslip, company: saved } : defaultPayslip;
-    return { ...base, workInfo: { ...base.workInfo, workDays: initialWork.days, totalWorkHours: MINIMUM_WAGE.monthlyHours } };
+    return { ...defaultPayslip, workInfo: { ...defaultPayslip.workInfo, workDays: initialWork.days, totalWorkHours: MINIMUM_WAGE.monthlyHours } };
   });
   const [showPreview, setShowPreview] = useState(false);
   const [autoCalculate, setAutoCalculate] = useState(true);
-  const [enableOvertimeAllowances, setEnableOvertimeAllowances] = useState(false); // 5인 미만 사업장 가산수당 자동계산 여부
-  const [employees] = useState<Employee[]>(() =>
-    typeof window !== 'undefined' ? getActiveEmployees() : []
-  );
+  const [enableOvertimeAllowances, setEnableOvertimeAllowances] = useState(false);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [showAdditionalOptions, setShowAdditionalOptions] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  // 클라이언트에서만 데이터 로드
+  useEffect(() => {
+    const saved = loadCompanyInfo();
+    if (saved) {
+      setPayslip(prev => ({ ...prev, company: saved }));
+    }
+    setEmployees(getActiveEmployees());
+  }, []);
   const printRef = useRef<HTMLDivElement>(null);
 
   // 급여명세서 → PaymentRecord 저장

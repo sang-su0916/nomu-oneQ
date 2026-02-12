@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatCurrency, formatResidentNumber, loadEmployees } from '@/lib/storage';
@@ -28,25 +28,26 @@ interface RetirementData {
   accountNumber: string;
 }
 
-const today = new Date();
-
-const defaultData: RetirementData = {
-  company: defaultCompanyInfo,
-  employeeName: '',
-  residentNumber: '',
-  department: '',
-  position: '',
-  hireDate: '',
-  resignDate: '',
-  lastThreeMonths: [
-    { year: today.getFullYear(), month: today.getMonth() + 1, totalPay: 0, days: 30, bonus: 0 },
-    { year: today.getFullYear(), month: today.getMonth(), totalPay: 0, days: 30, bonus: 0 },
-    { year: today.getFullYear(), month: today.getMonth() - 1 || 12, totalPay: 0, days: 30, bonus: 0 },
-  ],
-  paymentDate: '',
-  bankName: '',
-  accountNumber: '',
-};
+function createDefaultData(): RetirementData {
+  const today = new Date();
+  return {
+    company: defaultCompanyInfo,
+    employeeName: '',
+    residentNumber: '',
+    department: '',
+    position: '',
+    hireDate: '',
+    resignDate: '',
+    lastThreeMonths: [
+      { year: today.getFullYear(), month: today.getMonth() + 1, totalPay: 0, days: 30, bonus: 0 },
+      { year: today.getFullYear(), month: today.getMonth(), totalPay: 0, days: 30, bonus: 0 },
+      { year: today.getFullYear(), month: today.getMonth() - 1 || 12, totalPay: 0, days: 30, bonus: 0 },
+    ],
+    paymentDate: '',
+    bankName: '',
+    accountNumber: '',
+  };
+}
 
 function calcTenureDays(hire: string, resign: string): number {
   if (!hire || !resign) return 0;
@@ -56,17 +57,19 @@ function calcTenureDays(hire: string, resign: string): number {
 }
 
 export default function RetirementPayPage() {
-  const [data, setData] = useState<RetirementData>(() => {
-    if (typeof window === 'undefined') return defaultData;
-    const saved = loadCompanyInfo();
-    return saved ? { ...defaultData, company: saved } : defaultData;
-  });
+  const [data, setData] = useState<RetirementData>(createDefaultData);
   const [showPreview, setShowPreview] = useState(false);
-  // 퇴직금은 퇴사자도 포함
-  const [employees] = useState<Employee[]>(() =>
-    typeof window !== 'undefined' ? loadEmployees() : []
-  );
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+
+  // 클라이언트에서만 데이터 로드
+  useEffect(() => {
+    const saved = loadCompanyInfo();
+    if (saved) {
+      setData(prev => ({ ...prev, company: saved }));
+    }
+    setEmployees(loadEmployees());
+  }, []);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handleEmployeeSelect = (id: string) => {
