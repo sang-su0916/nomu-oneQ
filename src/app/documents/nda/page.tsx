@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, EmployeeInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatBusinessNumber, getActiveEmployees } from '@/lib/storage';
@@ -19,28 +19,33 @@ interface NdaData {
 
 const defaultEmployee: EmployeeInfo = { name: '', residentNumber: '', address: '', phone: '' };
 
-const defaultNda: NdaData = {
-  company: defaultCompanyInfo,
-  employee: defaultEmployee,
-  department: '',
-  position: '',
-  effectiveDate: new Date().toISOString().split('T')[0],
-  includeNonCompete: false,
-  nonCompetePeriod: 2,
-  confidentialityPeriod: 2,
-};
+function createDefaultNda(): NdaData {
+  return {
+    company: defaultCompanyInfo,
+    employee: defaultEmployee,
+    department: '',
+    position: '',
+    effectiveDate: new Date().toISOString().split('T')[0],
+    includeNonCompete: false,
+    nonCompetePeriod: 2,
+    confidentialityPeriod: 2,
+  };
+}
 
 export default function NdaPage() {
-  const [nda, setNda] = useState<NdaData>(() => {
-    if (typeof window === 'undefined') return defaultNda;
-    const saved = loadCompanyInfo();
-    return saved ? { ...defaultNda, company: saved } : defaultNda;
-  });
+  const [nda, setNda] = useState<NdaData>(createDefaultNda);
   const [showPreview, setShowPreview] = useState(false);
-  const [employees] = useState<Employee[]>(() =>
-    typeof window !== 'undefined' ? getActiveEmployees() : []
-  );
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+
+  // 클라이언트에서만 데이터 로드
+  useEffect(() => {
+    const saved = loadCompanyInfo();
+    if (saved) {
+      setNda(prev => ({ ...prev, company: saved }));
+    }
+    setEmployees(getActiveEmployees());
+  }, []);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handleEmployeeSelect = (id: string) => {

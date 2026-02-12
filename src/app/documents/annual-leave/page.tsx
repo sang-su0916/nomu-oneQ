@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, getActiveEmployees } from '@/lib/storage';
@@ -46,28 +46,33 @@ function calcAnnualLeave(hireDate: string, year: number): number {
   return Math.min(25, 15 + extra);
 }
 
-const defaultData: AnnualLeaveData = {
-  company: defaultCompanyInfo,
-  employeeName: '',
-  department: '',
-  position: '',
-  hireDate: '',
-  year: new Date().getFullYear(),
-  totalDays: 15,
-  usages: [],
-};
+function createDefaultData(): AnnualLeaveData {
+  return {
+    company: defaultCompanyInfo,
+    employeeName: '',
+    department: '',
+    position: '',
+    hireDate: '',
+    year: new Date().getFullYear(),
+    totalDays: 15,
+    usages: [],
+  };
+}
 
 export default function AnnualLeavePage() {
-  const [data, setData] = useState<AnnualLeaveData>(() => {
-    if (typeof window === 'undefined') return defaultData;
-    const saved = loadCompanyInfo();
-    return saved ? { ...defaultData, company: saved } : defaultData;
-  });
+  const [data, setData] = useState<AnnualLeaveData>(createDefaultData);
   const [showPreview, setShowPreview] = useState(false);
-  const [employees] = useState<Employee[]>(() =>
-    typeof window !== 'undefined' ? getActiveEmployees() : []
-  );
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+
+  // 클라이언트에서만 데이터 로드
+  useEffect(() => {
+    const saved = loadCompanyInfo();
+    if (saved) {
+      setData(prev => ({ ...prev, company: saved }));
+    }
+    setEmployees(getActiveEmployees());
+  }, []);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handleEmployeeSelect = (id: string) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, getActiveEmployees } from '@/lib/storage';
@@ -21,32 +21,38 @@ interface NoticeData {
   plannedDates: string;
 }
 
-const defaultData: NoticeData = {
-  company: defaultCompanyInfo,
-  employeeName: '',
-  department: '',
-  position: '',
-  noticeType: '1st',
-  year: new Date().getFullYear(),
-  totalDays: 15,
-  usedDays: 0,
-  remainDays: 15,
-  deadline: '',
-  noticeDate: new Date().toISOString().split('T')[0],
-  plannedDates: '',
-};
+function createDefaultData(): NoticeData {
+  const today = new Date();
+  return {
+    company: defaultCompanyInfo,
+    employeeName: '',
+    department: '',
+    position: '',
+    noticeType: '1st',
+    year: today.getFullYear(),
+    totalDays: 15,
+    usedDays: 0,
+    remainDays: 15,
+    deadline: '',
+    noticeDate: today.toISOString().split('T')[0],
+    plannedDates: '',
+  };
+}
 
 export default function AnnualLeaveNoticePage() {
-  const [data, setData] = useState<NoticeData>(() => {
-    if (typeof window === 'undefined') return defaultData;
-    const saved = loadCompanyInfo();
-    return saved ? { ...defaultData, company: saved } : defaultData;
-  });
+  const [data, setData] = useState<NoticeData>(createDefaultData);
   const [showPreview, setShowPreview] = useState(false);
-  const [employees] = useState<Employee[]>(() =>
-    typeof window !== 'undefined' ? getActiveEmployees() : []
-  );
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+
+  // 클라이언트에서만 데이터 로드
+  useEffect(() => {
+    const saved = loadCompanyInfo();
+    if (saved) {
+      setData(prev => ({ ...prev, company: saved }));
+    }
+    setEmployees(getActiveEmployees());
+  }, []);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handleEmployeeSelect = (id: string) => {

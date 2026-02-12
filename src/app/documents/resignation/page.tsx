@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, getActiveEmployees } from '@/lib/storage';
@@ -20,29 +20,34 @@ interface ResignationData {
 
 const reasonCategories = ['개인 사유', '건강 사유', '가정 사유', '이직', '학업', '기타'];
 
-const defaultData: ResignationData = {
-  company: defaultCompanyInfo,
-  employeeName: '',
-  department: '',
-  position: '',
-  hireDate: '',
-  resignDate: '',
-  reasonCategory: '개인 사유',
-  reasonDetail: '',
-  submitDate: new Date().toISOString().split('T')[0],
-};
+function createDefaultData(): ResignationData {
+  return {
+    company: defaultCompanyInfo,
+    employeeName: '',
+    department: '',
+    position: '',
+    hireDate: '',
+    resignDate: '',
+    reasonCategory: '개인 사유',
+    reasonDetail: '',
+    submitDate: new Date().toISOString().split('T')[0],
+  };
+}
 
 export default function ResignationPage() {
-  const [data, setData] = useState<ResignationData>(() => {
-    if (typeof window === 'undefined') return defaultData;
-    const saved = loadCompanyInfo();
-    return saved ? { ...defaultData, company: saved } : defaultData;
-  });
+  const [data, setData] = useState<ResignationData>(createDefaultData);
   const [showPreview, setShowPreview] = useState(false);
-  const [employees] = useState<Employee[]>(() =>
-    typeof window !== 'undefined' ? getActiveEmployees() : []
-  );
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+
+  // 클라이언트에서만 데이터 로드
+  useEffect(() => {
+    const saved = loadCompanyInfo();
+    if (saved) {
+      setData(prev => ({ ...prev, company: saved }));
+    }
+    setEmployees(getActiveEmployees());
+  }, []);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handleEmployeeSelect = (id: string) => {
