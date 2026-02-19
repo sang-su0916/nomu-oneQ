@@ -1,6 +1,6 @@
 {
-  "name": "nomu-ttuktak",
-  "version": "0.1.0",
+  "name": "nomu-oneq",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.97.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.1.0",
     "next": "16.1.6",

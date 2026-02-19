@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 노무원큐 (nomu-oneQ)
 
-## Getting Started
+> 사업장 노무관리, 원큐로 해결
 
-First, run the development server:
+## 개요
+소규모 사업장(5~50인)을 위한 SaaS 노무관리 솔루션.
+근로계약서, 급여명세서, 연차관리 등 노무서류를 온라인으로 쉽게 작성·관리합니다.
 
+## 기술 스택
+- **프론트엔드**: Next.js 16 + TypeScript + Tailwind CSS
+- **백엔드/DB**: Supabase (Auth + PostgreSQL + Storage)
+- **배포**: Vercel
+
+## 시작하기
+
+### 1. Supabase 프로젝트 생성
+1. [supabase.com](https://supabase.com)에서 프로젝트 생성
+2. `supabase/schema.sql`을 SQL Editor에서 실행
+3. Authentication > Providers에서 Email, Kakao 활성화
+
+### 2. 환경변수 설정
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.local.example .env.local
+# .env.local에 Supabase URL과 키 입력
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. 실행
+```bash
+npm install
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 요금제
+| 플랜 | 가격 | 직원 수 | 주요 기능 |
+|------|------|---------|----------|
+| 무료 | 0원 | 3명 | 기본 서류 5종 |
+| 스타터 | 19,900원/월 | 10명 | 전체 서류, PDF |
+| 비즈니스 | 39,900원/월 | 50명 | 전자서명, 알림 |
+| 프로 | 99,000원/월 | 무제한 | 다지점, 전문가 상담 |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 서류 목록 (30종+)
+- 근로계약서 (정규직/파트타임/프리랜서)
+- 급여명세서, 임금대장
+- 취업규칙 (98조항)
+- 개인정보동의서, 비밀유지서약서
+- 출퇴근기록부, 연차관리대장
+- 시간외근로합의서
+- 재직증명서, 경력증명서
+- 사직서, 퇴직금정산서
+- 연차촉진통보서
+- *(확장 예정)* 징계통보서, 교육훈련확인서, 수습평가서 등
 
-## Learn More
+## 법적 고지
+본 서비스의 문서 양식은 참고용이며, 법적 효력은 관할 기관 및 전문가 확인이 필요합니다.
+노무 관련 상수(최저임금, 4대보험요율 등)는 고용노동부, 국민건강보험공단, 국민연금공단의
+공식 자료를 기반으로 합니다.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 운영
+- **by**: [엘비즈파트너스](https://lbiz-partners.com)
+- **문의**: sangsu0916@naver.com / 010-3709-5785

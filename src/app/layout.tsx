@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata: Metadata = {
-  title: "노무뚝딱 - 노무서류 관리 시스템",
-  description: "근로계약서, 임금대장, 급여명세서, 취업규칙을 간편하게 작성하고 출력하세요. 노무 전문가를 위한 서류 관리 솔루션.",
-  keywords: "노무관리, 근로계약서, 급여명세서, 임금대장, 취업규칙, HR, 인사관리",
+  title: "노무원큐 - 사업장 노무관리 솔루션",
+  description: "근로계약서, 급여명세서, 연차관리 등 노무서류를 원큐로 관리하세요. 소규모 사업장을 위한 스마트 노무관리.",
+  keywords: "노무관리, 근로계약서, 급여명세서, 임금대장, 취업규칙, HR, 인사관리, SaaS",
 };
 
 export default function RootLayout({
@@ -16,10 +17,12 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="min-h-screen">
-        <Navigation />
-        <main className="pt-14">
-          {children}
-        </main>
+        <AuthProvider>
+          <Navigation />
+          <main className="pt-14">
+            {children}
+          </main>
+        </AuthProvider>
       </body>
     </html>
   );
