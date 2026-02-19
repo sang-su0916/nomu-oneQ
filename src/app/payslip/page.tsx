@@ -254,6 +254,16 @@ export default function PayslipPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [showAdditionalOptions, setShowAdditionalOptions] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const { saveDocument, saving: archiveSaving, saved: archiveSaved } = useDocumentSave();
+
+  const handleSaveToArchive = async () => {
+    await saveDocument({
+      docType: 'payslip',
+      title: `급여명세서 - ${payslip.employee.name || '이름없음'} ${payslip.year}년 ${payslip.month}월`,
+      employeeId: selectedEmployeeId || undefined,
+      data: payslip as unknown as Record<string, unknown>,
+    });
+  };
 
   // 클라이언트에서만 데이터 로드
   useEffect(() => {
@@ -551,6 +561,15 @@ export default function PayslipPage() {
           >
             {saveStatus === 'saving' ? '💾 저장중...' : saveStatus === 'saved' ? '✅ 저장완료' : '💾 임금대장에 저장'}
           </button>
+          {showPreview && (
+            <button
+              onClick={handleSaveToArchive}
+              disabled={archiveSaving}
+              className="btn-secondary disabled:opacity-50"
+            >
+              {archiveSaving ? '저장 중...' : archiveSaved ? '✓ 저장됨' : '🗄️ 보관함에 저장'}
+            </button>
+          )}
           <button onClick={() => handlePrint()} className="btn-primary">
             🖨️ 인쇄/PDF
           </button>

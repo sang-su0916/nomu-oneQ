@@ -83,6 +83,16 @@ export default function WageLedgerPage() {
     setRegisteredEmployees(getActiveEmployees());
   }, []);
   const [showPreview, setShowPreview] = useState(false);
+  const { saveDocument, saving: archiveSaving, saved: archiveSaved } = useDocumentSave();
+
+  const handleSaveToArchive = async () => {
+    await saveDocument({
+      docType: 'wage_ledger',
+      title: `임금대장 - ${data.year}년 ${data.month}월`,
+      data: data as unknown as Record<string, unknown>,
+    });
+  };
+
   const [showSelector, setShowSelector] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const printRef = useRef<HTMLDivElement>(null);
@@ -316,6 +326,15 @@ export default function WageLedgerPage() {
           >
             {showPreview ? '✏️ 수정' : '👁️ 미리보기'}
           </button>
+          {showPreview && (
+            <button
+              onClick={handleSaveToArchive}
+              disabled={archiveSaving}
+              className="btn-secondary disabled:opacity-50"
+            >
+              {archiveSaving ? '저장 중...' : archiveSaved ? '✓ 저장됨' : '🗄️ 보관함에 저장'}
+            </button>
+          )}
           <button onClick={() => handlePrint()} className="btn-primary">
             🖨️ 인쇄/PDF
           </button>

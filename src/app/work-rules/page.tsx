@@ -159,6 +159,15 @@ export default function WorkRulesPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('basic');
   const printRef = useRef<HTMLDivElement>(null);
+  const { saveDocument, saving, saved } = useDocumentSave();
+
+  const handleSaveToArchive = async () => {
+    await saveDocument({
+      docType: 'work_rules',
+      title: `취업규칙 - ${rules.company.name || '회사명없음'}`,
+      data: rules as unknown as Record<string, unknown>,
+    });
+  };
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -191,6 +200,15 @@ export default function WorkRulesPage() {
           >
             {showPreview ? '✏️ 수정하기' : '👁️ 미리보기'}
           </button>
+          {showPreview && (
+            <button
+              onClick={handleSaveToArchive}
+              disabled={saving}
+              className="btn-secondary disabled:opacity-50"
+            >
+              {saving ? '저장 중...' : saved ? '✓ 저장됨' : '🗄️ 보관함에 저장'}
+            </button>
+          )}
           <button onClick={() => handlePrint()} className="btn-primary">
             🖨️ 인쇄/PDF
           </button>

@@ -55,6 +55,16 @@ export default function CertificatePage() {
     setEmployees(getActiveEmployees());
   }, []);
   const printRef = useRef<HTMLDivElement>(null);
+  const { saveDocument, saving, saved } = useDocumentSave();
+
+  const handleSaveToArchive = async () => {
+    await saveDocument({
+      docType: 'certificate',
+      title: `재직증명서 - ${cert.employeeName || '이름없음'}`,
+      employeeId: selectedEmployeeId || undefined,
+      data: cert as unknown as Record<string, unknown>,
+    });
+  };
 
   const handleEmployeeSelect = (id: string) => {
     setSelectedEmployeeId(id);
@@ -90,6 +100,15 @@ export default function CertificatePage() {
           <button onClick={() => setShowPreview(!showPreview)} className="btn btn-secondary">
             {showPreview ? '수정' : '미리보기'}
           </button>
+          {showPreview && (
+            <button
+              onClick={handleSaveToArchive}
+              disabled={saving}
+              className="btn btn-secondary disabled:opacity-50"
+            >
+              {saving ? '저장 중...' : saved ? '✓ 저장됨' : '🗄️ 보관함에 저장'}
+            </button>
+          )}
           <button onClick={() => handlePrint()} className="btn btn-primary" disabled={!cert.employeeName}>
             인쇄/PDF
           </button>
