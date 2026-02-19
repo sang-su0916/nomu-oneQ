@@ -125,11 +125,50 @@ export default function DashboardPage() {
         <QuickAction href="/contract/fulltime" icon="📋" label="근로계약서" />
         <QuickAction href="/payslip" icon="💵" label="급여명세서" />
         <QuickAction href="/documents/attendance" icon="🕐" label="출퇴근기록부" />
-        <QuickAction href="/documents/resignation" icon="📤" label="사직서" />
         <QuickAction href="/documents/certificate" icon="📜" label="재직증명서" />
         <QuickAction href="/wage-ledger" icon="📊" label="임금대장" />
         <QuickAction href="/work-rules" icon="📖" label="취업규칙" />
+        <QuickAction href="/archive" icon="🗄️" label="서류 보관함" />
       </div>
+
+      {/* 추가 서류 */}
+      <details className="mb-8">
+        <summary className="text-lg font-bold text-[var(--text)] cursor-pointer mb-4 select-none">
+          📄 전체 서류 (30종) <span className="text-sm font-normal text-[var(--text-muted)]">펼치기</span>
+        </summary>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <QuickAction href="/contract/fulltime" icon="📋" label="정규직 계약서" />
+          <QuickAction href="/contract/parttime" icon="📋" label="파트타임 계약서" />
+          <QuickAction href="/contract/freelancer" icon="📋" label="프리랜서 계약서" />
+          <QuickAction href="/documents/privacy-consent" icon="🔒" label="개인정보동의서" />
+          <QuickAction href="/documents/nda" icon="🤫" label="비밀유지서약서" />
+          <QuickAction href="/documents/pledge" icon="✍️" label="서약서" />
+          <QuickAction href="/documents/certificate" icon="📜" label="재직증명서" />
+          <QuickAction href="/documents/career-certificate" icon="📜" label="경력증명서" />
+          <QuickAction href="/documents/attendance" icon="🕐" label="출퇴근기록부" />
+          <QuickAction href="/documents/overtime" icon="⏰" label="시간외근로합의서" />
+          <QuickAction href="/documents/annual-leave" icon="🏖️" label="연차관리대장" />
+          <QuickAction href="/documents/annual-leave-notice" icon="📬" label="연차촉진통보서" />
+          <QuickAction href="/documents/resignation" icon="📤" label="사직서" />
+          <QuickAction href="/documents/retirement-pay" icon="💰" label="퇴직금정산서" />
+          <QuickAction href="/documents/personnel-card" icon="👤" label="인사카드" />
+          <QuickAction href="/documents/probation-eval" icon="📝" label="수습평가서" />
+          <QuickAction href="/documents/training-record" icon="🎓" label="교육훈련확인서" />
+          <QuickAction href="/documents/warning-letter" icon="⚠️" label="경고장" />
+          <QuickAction href="/documents/disciplinary-notice" icon="🔴" label="징계통보서" />
+          <QuickAction href="/documents/termination-notice" icon="❌" label="해고통보서" />
+          <QuickAction href="/documents/leave-application" icon="🏖️" label="휴직신청서" />
+          <QuickAction href="/documents/reinstatement" icon="🔄" label="복직신청서" />
+          <QuickAction href="/documents/work-hours-change" icon="🕐" label="근무시간변경합의서" />
+          <QuickAction href="/documents/remote-work" icon="🏠" label="재택근무신청서" />
+          <QuickAction href="/documents/business-trip" icon="✈️" label="출장신청서" />
+          <QuickAction href="/documents/side-job-permit" icon="📄" label="겸업허가신청서" />
+          <QuickAction href="/documents/handover" icon="🤝" label="업무인수인계서" />
+          <QuickAction href="/payslip" icon="💵" label="급여명세서" />
+          <QuickAction href="/wage-ledger" icon="📊" label="임금대장" />
+          <QuickAction href="/work-rules" icon="📖" label="취업규칙" />
+        </div>
+      </details>
 
       {/* 최근 직원 */}
       {recentEmployees.length > 0 && (

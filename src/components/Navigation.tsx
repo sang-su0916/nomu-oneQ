@@ -21,24 +21,53 @@ const menuItems = [
   },
   {
     href: '/documents',
-    label: '노무서류',
+    label: '서류',
     icon: '📄',
     submenu: [
-      { href: '/documents/privacy-consent', label: '개인정보동의서' },
-      { href: '/documents/nda', label: '비밀유지서약서' },
-      { href: '/documents/attendance', label: '출퇴근기록부' },
-      { href: '/documents/annual-leave', label: '연차관리대장' },
-      { href: '/documents/overtime', label: '시간외근로합의서' },
-      { href: '/documents/certificate', label: '재직증명서' },
-      { href: '/documents/career-certificate', label: '경력증명서' },
-      { href: '/documents/resignation', label: '사직서' },
-      { href: '/documents/retirement-pay', label: '퇴직금정산서' },
-      { href: '/documents/annual-leave-notice', label: '연차촉진통보서' },
+      // 증명서
+      { href: '/documents/certificate', label: '📜 재직증명서' },
+      { href: '/documents/career-certificate', label: '📜 경력증명서' },
+      // 동의/서약
+      { href: '/documents/privacy-consent', label: '🔒 개인정보동의서' },
+      { href: '/documents/nda', label: '🤫 비밀유지서약서' },
+      { href: '/documents/pledge', label: '✍️ 서약서' },
+      // 근태
+      { href: '/documents/attendance', label: '🕐 출퇴근기록부' },
+      { href: '/documents/overtime', label: '⏰ 시간외근로합의서' },
+      { href: '/documents/annual-leave', label: '🏖️ 연차관리대장' },
+      { href: '/documents/annual-leave-notice', label: '📬 연차촉진통보서' },
+      // 인사
+      { href: '/documents/resignation', label: '📤 사직서' },
+      { href: '/documents/retirement-pay', label: '💰 퇴직금정산서' },
+      { href: '/documents/personnel-card', label: '👤 인사카드' },
+      { href: '/documents/probation-eval', label: '📝 수습평가서' },
+      { href: '/documents/training-record', label: '🎓 교육훈련확인서' },
+    ]
+  },
+  {
+    href: '/documents2',
+    label: '서류+',
+    icon: '📋',
+    submenu: [
+      // 징계
+      { href: '/documents/warning-letter', label: '⚠️ 경고장' },
+      { href: '/documents/disciplinary-notice', label: '🔴 징계통보서' },
+      { href: '/documents/termination-notice', label: '❌ 해고통보서' },
+      // 휴직/복직
+      { href: '/documents/leave-application', label: '🏖️ 휴직신청서' },
+      { href: '/documents/reinstatement', label: '🔄 복직신청서' },
+      // 업무
+      { href: '/documents/work-hours-change', label: '🕐 근무시간변경합의서' },
+      { href: '/documents/remote-work', label: '🏠 재택근무신청서' },
+      { href: '/documents/business-trip', label: '✈️ 출장신청서' },
+      { href: '/documents/side-job-permit', label: '📄 겸업허가신청서' },
+      { href: '/documents/handover', label: '🤝 업무인수인계서' },
     ]
   },
   { href: '/payslip', label: '급여명세서', icon: '💵' },
   { href: '/wage-ledger', label: '임금대장', icon: '📊' },
   { href: '/work-rules', label: '취업규칙', icon: '📖' },
+  { href: '/archive', label: '보관함', icon: '🗄️' },
 ];
 
 export default function Navigation() {
