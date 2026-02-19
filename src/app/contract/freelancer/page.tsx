@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, EmployeeInfo } from '@/types';
 import HelpGuide from '@/components/HelpGuide';
+import { useDocumentSave } from '@/hooks/useDocumentSave';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatCurrency, formatBusinessNumber, formatPhoneNumber } from '@/lib/storage';
 
 interface FreelancerContractData {
@@ -58,6 +59,15 @@ export default function FreelancerContractPage() {
   });
   const [showPreview, setShowPreview] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+  const { saveDocument, saving, saved } = useDocumentSave();
+
+  const handleSaveToArchive = async () => {
+    await saveDocument({
+      docType: 'contract_freelancer',
+      title: `프리랜서 계약서 - ${contract.contractor.name || '이름없음'} (${contract.projectName || '프로젝트'})`,
+      data: contract as unknown as Record<string, unknown>,
+    });
+  };
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -122,6 +132,15 @@ export default function FreelancerContractPage() {
           >
             {showPreview ? '✏️ 수정하기' : '👁️ 미리보기'}
           </button>
+          {showPreview && (
+            <button
+              onClick={handleSaveToArchive}
+              disabled={saving}
+              className="btn-secondary disabled:opacity-50"
+            >
+              {saving ? '저장 중...' : saved ? '✓ 저장됨' : '🗄️ 보관함에 저장'}
+            </button>
+          )}
           <button onClick={() => handlePrint()} className="btn-primary">
             🖨️ 인쇄/PDF
           </button>

@@ -6,6 +6,7 @@ import { CompanyInfo, EmployeeInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatCurrency, formatBusinessNumber, formatResidentNumber, getActiveEmployees } from '@/lib/storage';
 import { MINIMUM_WAGE } from '@/lib/constants';
 import HelpGuide from '@/components/HelpGuide';
+import { useDocumentSave } from '@/hooks/useDocumentSave';
 
 interface WorkSchedule {
   day: string;
@@ -121,6 +122,16 @@ export default function ParttimeContractPage() {
   );
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const printRef = useRef<HTMLDivElement>(null);
+  const { saveDocument, saving, saved } = useDocumentSave();
+
+  const handleSaveToArchive = async () => {
+    await saveDocument({
+      docType: 'contract_parttime',
+      title: `단시간 근로계약서 - ${contract.employee.name || '이름없음'}`,
+      employeeId: selectedEmployeeId || undefined,
+      data: contract as unknown as Record<string, unknown>,
+    });
+  };
 
   // 직원 선택 시 정보 자동 입력
   const handleEmployeeSelect = (employeeId: string) => {
@@ -272,6 +283,15 @@ export default function ParttimeContractPage() {
           >
             {showPreview ? '✏️ 수정' : '👁️ 미리보기'}
           </button>
+          {showPreview && (
+            <button
+              onClick={handleSaveToArchive}
+              disabled={saving}
+              className="btn-secondary disabled:opacity-50"
+            >
+              {saving ? '저장 중...' : saved ? '✓ 저장됨' : '🗄️ 보관함에 저장'}
+            </button>
+          )}
           <button
             onClick={() => handlePrint()}
             className="btn-primary bg-purple-600 hover:bg-purple-700"

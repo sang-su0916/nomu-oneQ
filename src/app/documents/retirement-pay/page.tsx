@@ -5,6 +5,7 @@ import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatCurrency, formatResidentNumber, loadEmployees } from '@/lib/storage';
 import HelpGuide from '@/components/HelpGuide';
+import { useDocumentSave } from '@/hooks/useDocumentSave';
 
 interface MonthSalary {
   year: number;

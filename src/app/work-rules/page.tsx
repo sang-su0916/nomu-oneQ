@@ -5,6 +5,7 @@ import { useReactToPrint } from 'react-to-print';
 import { CompanyInfo } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo } from '@/lib/storage';
 import HelpGuide from '@/components/HelpGuide';
+import { useDocumentSave } from '@/hooks/useDocumentSave';
 
 interface WorkRulesData {
   company: CompanyInfo;

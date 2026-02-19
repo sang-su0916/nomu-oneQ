@@ -6,6 +6,7 @@ import { CompanyInfo, EmployeeInfo, Employee, PaymentRecord } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatCurrency, formatBusinessNumber, getActiveEmployees, addPaymentRecord, generateId } from '@/lib/storage';
 import { getWorkingDays, MINIMUM_WAGE } from '@/lib/constants';
 import HelpGuide from '@/components/HelpGuide';
+import { useDocumentSave } from '@/hooks/useDocumentSave';
 
 // ============================================
 // 통상임금·통상시급 및 가산수당 자동 계산

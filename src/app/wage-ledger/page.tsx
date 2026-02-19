@@ -6,6 +6,7 @@ import { CompanyInfo, Employee as RegisteredEmployee, PaymentRecord } from '@/ty
 import { loadCompanyInfo, defaultCompanyInfo, formatCurrency, formatBusinessNumber, getActiveEmployees, getPaymentRecordsByMonth } from '@/lib/storage';
 import { calculateInsurance, calculateIncomeTax } from '@/lib/constants';
 import HelpGuide from '@/components/HelpGuide';
+import { useDocumentSave } from '@/hooks/useDocumentSave';
 
 interface LedgerEmployee {
   id: string;
