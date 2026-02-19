@@ -1,8 +1,8 @@
-@import "tailwindcss";
-
-/* External Fonts */
+/* External Fonts — @import must precede all other rules */
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
 @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&display=swap');
+
+@import "tailwindcss";
 
 :root {
   /* Professional HR System Color Palette */

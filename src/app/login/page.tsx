@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -21,6 +21,14 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/dashboard';
+  const authError = searchParams.get('error');
+
+  // URL에 에러 파라미터가 있으면 표시
+  useEffect(() => {
+    if (authError === 'auth_failed') {
+      setError('인증에 실패했습니다. 다시 시도해주세요.');
+    }
+  }, [authError]);
 
   const supabase = createClient();
 

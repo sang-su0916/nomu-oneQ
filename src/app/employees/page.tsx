@@ -5,11 +5,6 @@ import Link from 'next/link';
 import { Employee, EmploymentType } from '@/types';
 import HelpGuide from '@/components/HelpGuide';
 import {
-  loadEmployees,
-  addEmployee, 
-  updateEmployee, 
-  deleteEmployee, 
-  generateId,
   formatCurrency,
   formatDateShort,
   formatResidentNumber
@@ -20,6 +15,7 @@ import {
   calculateInsurance,
   TAX_EXEMPTION_LIMITS 
 } from '@/lib/constants';
+import { useEmployees } from '@/hooks/useEmployees';
 
 const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
   fulltime: '정규직',
@@ -64,38 +60,34 @@ const defaultEmployee: Omit<Employee, 'id' | 'createdAt' | 'updatedAt'> = {
 };
 
 export default function EmployeesPage() {
-  const [employees, setEmployees] = useState<Employee[]>(() => {
-    if (typeof window === 'undefined') return [];
-    return loadEmployees();
-  });
+  const { employees, loading: empLoading, addEmployee: addEmp, updateEmployee: updateEmp, deleteEmployee: deleteEmp } = useEmployees();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState(defaultEmployee);
   const [showOptimizer, setShowOptimizer] = useState(false);
   const [totalSalaryInput, setTotalSalaryInput] = useState(0);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.info.name) {
       alert('직원 이름을 입력해주세요.');
       return;
     }
 
-    const now = new Date().toISOString();
-    
-    if (editingId) {
-      updateEmployee(editingId, formData);
-    } else {
-      const newEmployee: Employee = {
-        ...formData,
-        id: generateId(),
-        createdAt: now,
-        updatedAt: now,
-      };
-      addEmployee(newEmployee);
+    setSaving(true);
+    try {
+      if (editingId) {
+        await updateEmp(editingId, formData);
+      } else {
+        await addEmp(formData);
+      }
+      resetForm();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '저장에 실패했습니다.';
+      alert(message);
+    } finally {
+      setSaving(false);
     }
-
-    setEmployees(loadEmployees());
-    resetForm();
   };
 
   const handleEdit = (employee: Employee) => {
@@ -104,10 +96,14 @@ export default function EmployeesPage() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('정말 삭제하시겠습니까?')) {
-      deleteEmployee(id);
-      setEmployees(loadEmployees());
+      try {
+        await deleteEmp(id);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : '삭제에 실패했습니다.';
+        alert(message);
+      }
     }
   };
 
@@ -179,8 +175,15 @@ export default function EmployeesPage() {
         ]}
       />
 
+      {/* 로딩 */}
+      {empLoading && (
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full" />
+        </div>
+      )}
+
       {/* 직원 목록 */}
-      {!showForm && (
+      {!empLoading && !showForm && (
         <div className="table-container">
           {employees.length === 0 ? (
             <div className="empty-state">
@@ -689,8 +692,8 @@ export default function EmployeesPage() {
             <button onClick={resetForm} className="btn btn-secondary">
               취소
             </button>
-            <button onClick={handleSave} className="btn btn-primary">
-              {editingId ? '수정 완료' : '직원 등록'}
+            <button onClick={handleSave} disabled={saving} className="btn btn-primary disabled:opacity-50">
+              {saving ? '저장 중...' : editingId ? '수정 완료' : '직원 등록'}
             </button>
           </div>
         </div>

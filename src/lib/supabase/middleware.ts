@@ -28,7 +28,7 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // 인증 불필요 경로
-  const publicPaths = ['/login', '/signup', '/auth/callback', '/about'];
+  const publicPaths = ['/login', '/signup', '/auth/callback', '/about', '/pricing'];
   const isPublicPath = publicPaths.some(p => request.nextUrl.pathname.startsWith(p));
 
   if (!user && !isPublicPath && request.nextUrl.pathname !== '/') {

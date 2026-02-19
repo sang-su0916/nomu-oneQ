@@ -3,7 +3,8 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
-import type { Company, CompanyMember, Profile } from '@/types/database';
+import type { Company, CompanyMember, Profile, DbEmployee } from '@/types/database';
+import type { Employee, CompanyInfo } from '@/types';
 
 interface AuthState {
   user: User | null;
@@ -31,6 +32,83 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const supabase = createClient();
 
+  // Supabase 회사정보 → localStorage 동기화 (기존 서류 페이지 호환)
+  const syncCompanyToLocal = useCallback((comp: Company) => {
+    if (typeof window === 'undefined') return;
+    const localInfo: CompanyInfo = {
+      name: comp.name,
+      ceoName: comp.ceo_name,
+      businessNumber: comp.business_number,
+      address: comp.address || '',
+      phone: comp.phone || '',
+    };
+    localStorage.setItem('nomu_company_info', JSON.stringify(localInfo));
+  }, []);
+
+  // Supabase 직원정보 → localStorage 동기화
+  const syncEmployeesToLocal = useCallback(async (companyId: string) => {
+    if (typeof window === 'undefined') return;
+    const { data: dbEmployees } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false });
+
+    if (!dbEmployees) return;
+
+    // DbEmployee → localStorage Employee 형식 변환
+    const localEmployees: Employee[] = dbEmployees.map((e: DbEmployee) => ({
+      id: e.id,
+      info: {
+        name: e.name,
+        residentNumber: e.resident_number || '',
+        address: e.address || '',
+        phone: e.phone || '',
+      },
+      employmentType: e.employment_type,
+      status: e.status,
+      hireDate: e.hire_date,
+      resignDate: e.resign_date || undefined,
+      department: e.department || undefined,
+      position: e.position || undefined,
+      salary: {
+        type: e.salary_type,
+        baseSalary: e.base_salary,
+        hourlyWage: e.hourly_wage || undefined,
+        mealAllowance: e.meal_allowance,
+        carAllowance: e.car_allowance,
+        childcareAllowance: e.childcare_allowance,
+        researchAllowance: e.research_allowance,
+        otherAllowances: e.other_allowances || [],
+        bonusInfo: e.bonus_info || undefined,
+      },
+      workCondition: {
+        weeklyHours: e.weekly_hours,
+        workDays: e.work_days || [],
+        workStartTime: e.work_start_time,
+        workEndTime: e.work_end_time,
+        breakTime: e.break_time,
+      },
+      insurance: {
+        national: e.insurance_national,
+        health: e.insurance_health,
+        employment: e.insurance_employment,
+        industrial: e.insurance_industrial,
+      },
+      taxExemptOptions: {
+        hasOwnCar: e.has_own_car,
+        hasChildUnder6: e.has_child_under6,
+        childrenUnder6Count: e.children_under6_count,
+        isResearcher: e.is_researcher,
+      },
+      createdAt: e.created_at,
+      updatedAt: e.updated_at,
+      contractId: e.contract_id || undefined,
+    }));
+
+    localStorage.setItem('nomu_employees', JSON.stringify(localEmployees));
+  }, [supabase]);
+
   const loadUserData = useCallback(async (currentUser: User) => {
     // 1. 프로필
     const { data: profileData } = await supabase
@@ -57,7 +135,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ) || memberships[0];
 
       if (currentMembership) {
-        setCompany(currentMembership.companies as Company);
+        const currentCompany = currentMembership.companies as Company;
+        setCompany(currentCompany);
         setMembership({
           id: currentMembership.id,
           company_id: currentMembership.company_id,
@@ -66,13 +145,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           invited_by: currentMembership.invited_by,
           created_at: currentMembership.created_at,
         });
+
+        // localStorage 동기화 (기존 서류 페이지 호환)
+        syncCompanyToLocal(currentCompany);
+        syncEmployeesToLocal(currentCompany.id);
       }
     } else {
       setCompanies([]);
       setCompany(null);
       setMembership(null);
     }
-  }, [supabase]);
+  }, [supabase, syncCompanyToLocal, syncEmployeesToLocal]);
 
   const refreshAuth = useCallback(async () => {
     if (user) await loadUserData(user);
@@ -84,6 +167,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .from('profiles')
       .update({ current_company_id: companyId })
       .eq('id', user.id);
+    // 사업장 전환 시 localStorage도 갱신
     await loadUserData(user);
   }, [user, supabase, loadUserData]);
 
@@ -94,6 +178,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCompany(null);
     setMembership(null);
     setCompanies([]);
+    // localStorage 정리
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('nomu_company_info');
+      localStorage.removeItem('nomu_employees');
+      localStorage.removeItem('nomu_payment_records');
+      localStorage.removeItem('nomu_contracts');
+    }
   }, [supabase]);
 
   useEffect(() => {
