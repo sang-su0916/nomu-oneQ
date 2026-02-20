@@ -40,43 +40,25 @@ export default function OnboardingPage() {
       return;
     }
 
-    // 1. 사업장 생성
-    const { data: company, error: companyErr } = await supabase
-      .from('companies')
-      .insert({
-        name: form.name,
-        ceo_name: form.ceoName,
-        business_number: bizNum,
-        address: form.address || null,
-        phone: form.phone || null,
-      })
-      .select()
-      .single();
+    // RPC로 사업장 등록 + 멤버 + 프로필 한 번에 처리
+    const { data: companyId, error: rpcErr } = await supabase
+      .rpc('register_company', {
+        p_name: form.name,
+        p_ceo_name: form.ceoName,
+        p_business_number: bizNum,
+        p_address: form.address || null,
+        p_phone: form.phone || null,
+      });
 
-    if (companyErr) {
-      if (companyErr.code === '23505') {
+    if (rpcErr) {
+      if (rpcErr.message?.includes('duplicate') || rpcErr.code === '23505') {
         setError('이미 등록된 사업자등록번호입니다.');
       } else {
-        setError(companyErr.message);
+        setError(rpcErr.message);
       }
       setLoading(false);
       return;
     }
-
-    // 2. admin 멤버 등록
-    await supabase
-      .from('company_members')
-      .insert({
-        company_id: company.id,
-        user_id: user.id,
-        role: 'admin',
-      });
-
-    // 3. 프로필에 현재 사업장 설정
-    await supabase
-      .from('profiles')
-      .update({ current_company_id: company.id })
-      .eq('id', user.id);
 
     await refreshAuth();
     router.push('/dashboard');
