@@ -22,6 +22,7 @@ export interface PlanGate {
   // 기능 체크
   canAccessDocument: (docType: string) => boolean;
   canAddEmployee: (currentCount: number) => boolean;
+  canUseFeature: (feature: string) => boolean;
   maxEmployees: number;
   
   // 제한 정보
@@ -79,6 +80,10 @@ export function usePlanGate(): PlanGate {
       return currentCount < limits.maxEmployees;
     };
 
+    const canUseFeature = (feature: string): boolean => {
+      return (limits.features as readonly string[]).includes(feature);
+    };
+
     return {
       plan,
       planStatus,
@@ -90,6 +95,7 @@ export function usePlanGate(): PlanGate {
       isExpiringSoon,
       canAccessDocument,
       canAddEmployee,
+      canUseFeature,
       maxEmployees: limits.maxEmployees,
       limits,
       freeDocTypes: FREE_DOCUMENT_TYPES,

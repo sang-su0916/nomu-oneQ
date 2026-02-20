@@ -15,6 +15,12 @@ interface SaveDocumentParams {
   data: Record<string, unknown>;
 }
 
+interface SignDocumentParams {
+  documentId: string;
+  signatureUrl: string;
+  signedBy?: string;
+}
+
 export function useDocumentSave() {
   const { company } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -56,7 +62,84 @@ export function useDocumentSave() {
     }
   }, [company, supabase]);
 
-  return { saveDocument, saving, saved };
+  const signDocument = useCallback(async (params: SignDocumentParams) => {
+    if (!company) {
+      alert('사업장 정보가 없습니다. 로그인을 확인해주세요.');
+      return null;
+    }
+
+    setSaving(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .update({
+          signed: true,
+          signed_at: new Date().toISOString(),
+          signed_by: params.signedBy || company.name,
+          signature_url: params.signatureUrl,
+        })
+        .eq('id', params.documentId)
+        .eq('company_id', company.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+      return data;
+    } catch (err) {
+      alert('서명 저장 실패: ' + (err instanceof Error ? err.message : '알 수 없는 오류'));
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  }, [company, supabase]);
+
+  /** 서류 저장 + 즉시 서명 (한 번에 처리) */
+  const saveAndSign = useCallback(async (
+    params: SaveDocumentParams & { signatureUrl: string; signedBy?: string }
+  ) => {
+    if (!company) {
+      alert('사업장 정보가 없습니다. 로그인을 확인해주세요.');
+      return null;
+    }
+
+    setSaving(true);
+    setSaved(false);
+
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .insert({
+          company_id: company.id,
+          employee_id: params.employeeId || null,
+          doc_type: params.docType,
+          title: params.title,
+          data: params.data,
+          signed: true,
+          signed_at: new Date().toISOString(),
+          signed_by: params.signedBy || company.name,
+          signature_url: params.signatureUrl,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+      return data;
+    } catch (err) {
+      alert('저장 실패: ' + (err instanceof Error ? err.message : '알 수 없는 오류'));
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  }, [company, supabase]);
+
+  return { saveDocument, signDocument, saveAndSign, saving, saved };
 }
 
 // 서류 유형 한글명 매핑

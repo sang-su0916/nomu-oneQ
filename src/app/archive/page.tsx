@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import { DOC_TYPE_LABELS } from '@/hooks/useDocumentSave';
 import { formatDateShort } from '@/lib/storage';
+import SignedBadge from '@/components/SignedBadge';
 import Link from 'next/link';
 
 interface ArchivedDoc {
@@ -13,6 +14,9 @@ interface ArchivedDoc {
   title: string;
   data: Record<string, unknown>;
   employee_id: string | null;
+  signed: boolean;
+  signed_at: string | null;
+  signature_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -159,18 +163,33 @@ export default function ArchivePage() {
                   {getDocIcon(doc.doc_type)}
                 </div>
                 <div>
-                  <h3 className="font-medium text-[var(--text)]">{doc.title}</h3>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-[var(--text)]">
+                      {doc.signed && <span className="mr-1">🔒</span>}
+                      {doc.title}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-[rgba(30,58,95,0.08)] text-[var(--primary)] font-medium">
                       {DOC_TYPE_LABELS[doc.doc_type] || doc.doc_type}
                     </span>
                     <span className="text-xs text-[var(--text-muted)]">
                       {formatDateShort(doc.created_at.split('T')[0])}
                     </span>
+                    {doc.signed && doc.signed_at && (
+                      <SignedBadge
+                        signedAt={doc.signed_at}
+                        signatureUrl={doc.signature_url}
+                        compact
+                      />
+                    )}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {doc.signed && doc.signed_at && (
+                  <SignedBadge signedAt={doc.signed_at} signatureUrl={doc.signature_url} />
+                )}
                 {deleteConfirm === doc.id ? (
                   <>
                     <button
@@ -189,7 +208,9 @@ export default function ArchivePage() {
                 ) : (
                   <button
                     onClick={() => setDeleteConfirm(doc.id)}
-                    className="px-3 py-1.5 text-xs text-red-500 border border-red-200 rounded-lg hover:bg-red-50"
+                    disabled={doc.signed}
+                    className="px-3 py-1.5 text-xs text-red-500 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                    title={doc.signed ? '서명된 서류는 삭제할 수 없습니다' : ''}
                   >
                     삭제
                   </button>

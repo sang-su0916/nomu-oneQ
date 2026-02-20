@@ -6,7 +6,11 @@ import { CompanyInfo, EmployeeInfo, Employee } from '@/types';
 import { loadCompanyInfo, defaultCompanyInfo, formatDate, formatCurrency, formatBusinessNumber, formatResidentNumber, getActiveEmployees } from '@/lib/storage';
 import { MINIMUM_WAGE } from '@/lib/constants';
 import HelpGuide from '@/components/HelpGuide';
+import SignatureModal from '@/components/SignatureModal';
+import SignedBadge from '@/components/SignedBadge';
+import UpgradeModal from '@/components/UpgradeModal';
 import { useDocumentSave } from '@/hooks/useDocumentSave';
+import { usePlanGate } from '@/hooks/usePlanGate';
 
 interface WorkSchedule {
   day: string;
@@ -132,7 +136,13 @@ export default function FulltimeContractPage() {
   );
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const printRef = useRef<HTMLDivElement>(null);
-  const { saveDocument, saving, saved } = useDocumentSave();
+  const { saveDocument, saveAndSign, saving, saved } = useDocumentSave();
+  const { canUseFeature } = usePlanGate();
+  const [showSignModal, setShowSignModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [employerSignature, setEmployerSignature] = useState<string | null>(null);
+  const [employeeSignature, setEmployeeSignature] = useState<string | null>(null);
+  const [signedAt, setSignedAt] = useState<string | null>(null);
 
   const handleSaveToArchive = async () => {
     await saveDocument({
@@ -142,6 +152,38 @@ export default function FulltimeContractPage() {
       data: contract as unknown as Record<string, unknown>,
     });
   };
+
+  const handleRequestSign = () => {
+    if (!canUseFeature('e_signature')) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setShowSignModal(true);
+  };
+
+  const handleSignComplete = async (signatures: { employer?: string; employee?: string }) => {
+    setEmployerSignature(signatures.employer || null);
+    setEmployeeSignature(signatures.employee || null);
+    const now = new Date().toISOString();
+    setSignedAt(now);
+
+    // 서명 포함 저장
+    const combinedSigUrl = signatures.employer || signatures.employee || '';
+    await saveAndSign({
+      docType: 'contract_fulltime',
+      title: `정규직 근로계약서 - ${contract.employee.name || '이름없음'}`,
+      employeeId: selectedEmployeeId || undefined,
+      data: {
+        ...contract as unknown as Record<string, unknown>,
+        employerSignature: signatures.employer || null,
+        employeeSignature: signatures.employee || null,
+      },
+      signatureUrl: combinedSigUrl,
+      signedBy: contract.company.ceoName,
+    });
+  };
+
+  const isSigned = !!signedAt;
 
   // 직원 선택 시 정보 자동 입력
   const handleEmployeeSelect = (employeeId: string) => {
@@ -242,20 +284,33 @@ export default function FulltimeContractPage() {
           <h1 className="text-2xl font-bold text-gray-800">📄 정규직 근로계약서</h1>
           <p className="text-gray-500 mt-1">고용노동부 표준 양식 기반 + 실무 강화</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {isSigned && signedAt && (
+            <SignedBadge signedAt={signedAt} signatureUrl={employerSignature} />
+          )}
           <button
             onClick={() => setShowPreview(!showPreview)}
             className="btn-secondary"
+            disabled={isSigned && !showPreview}
           >
-            {showPreview ? '✏️ 수정' : '👁️ 미리보기'}
+            {showPreview ? (isSigned ? '📄 보기' : '✏️ 수정') : '👁️ 미리보기'}
           </button>
-          {showPreview && (
+          {showPreview && !isSigned && (
             <button
               onClick={handleSaveToArchive}
               disabled={saving}
               className="btn-secondary disabled:opacity-50"
             >
               {saving ? '저장 중...' : saved ? '✓ 저장됨' : '🗄️ 보관함에 저장'}
+            </button>
+          )}
+          {showPreview && !isSigned && (
+            <button
+              onClick={handleRequestSign}
+              disabled={!contract.employee.name}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors text-sm"
+            >
+              ✍️ 전자서명 요청
             </button>
           )}
           <button
@@ -1009,21 +1064,53 @@ export default function FulltimeContractPage() {
       ) : (
         /* 미리보기 */
         <div className="bg-white rounded-xl shadow-lg p-8">
-          <ContractPreview contract={contract} />
+          <ContractPreview
+            contract={contract}
+            employerSignature={employerSignature}
+            employeeSignature={employeeSignature}
+          />
         </div>
       )}
 
       {/* 인쇄용 (숨겨진 영역) */}
       <div className="hidden">
         <div ref={printRef}>
-          <ContractPreview contract={contract} />
+          <ContractPreview
+            contract={contract}
+            employerSignature={employerSignature}
+            employeeSignature={employeeSignature}
+          />
         </div>
       </div>
+
+      {/* 전자서명 모달 */}
+      <SignatureModal
+        isOpen={showSignModal}
+        onClose={() => setShowSignModal(false)}
+        onComplete={handleSignComplete}
+        docType="contract_fulltime"
+        docTitle={`정규직 근로계약서 - ${contract.employee.name || '이름없음'}`}
+        mode="dual"
+        summary={[
+          { label: '사업장', value: contract.company.name },
+          { label: '근로자', value: contract.employee.name || '-' },
+          { label: '근무시작일', value: contract.startDate || '-' },
+          { label: '월 기본급', value: contract.baseSalary ? `${contract.baseSalary.toLocaleString()}원` : '-' },
+        ]}
+      />
+
+      {/* 업그레이드 모달 */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        title="전자서명은 유료 기능입니다"
+        message="비즈니스 또는 프로 플랜에서 전자서명 기능을 사용할 수 있습니다."
+      />
     </div>
   );
 }
 
-function ContractPreview({ contract }: { contract: ContractData }) {
+function ContractPreview({ contract, employerSignature, employeeSignature }: { contract: ContractData; employerSignature?: string | null; employeeSignature?: string | null }) {
   const insuranceList = [];
   if (contract.insurance.national) insuranceList.push('국민연금');
   if (contract.insurance.health) insuranceList.push('건강보험');
@@ -1531,8 +1618,12 @@ function ContractPreview({ contract }: { contract: ContractData }) {
               <tr>
                 <td style={{ padding: '10px 0', color: '#6b7280' }}>대표자</td>
                 <td style={{ padding: '10px 0', fontWeight: 600 }}>
-                  {contract.company.ceoName} 
-                  <span style={{ color: '#9ca3af', marginLeft: '20px' }}>(서명 또는 인)</span>
+                  {contract.company.ceoName}
+                  {employerSignature ? (
+                    <img src={employerSignature} alt="사업주 서명" style={{ height: '48px', display: 'inline-block', marginLeft: '12px', verticalAlign: 'middle' }} />
+                  ) : (
+                    <span style={{ color: '#9ca3af', marginLeft: '20px' }}>(서명 또는 인)</span>
+                  )}
                 </td>
               </tr>
             </tbody>
@@ -1566,7 +1657,11 @@ function ContractPreview({ contract }: { contract: ContractData }) {
                 <td style={{ padding: '10px 0', color: '#6b7280' }}>서명</td>
                 <td style={{ padding: '10px 0', fontWeight: 600 }}>
                   {contract.employee.name}
-                  <span style={{ color: '#9ca3af', marginLeft: '20px' }}>(서명 또는 인)</span>
+                  {employeeSignature ? (
+                    <img src={employeeSignature} alt="근로자 서명" style={{ height: '48px', display: 'inline-block', marginLeft: '12px', verticalAlign: 'middle' }} />
+                  ) : (
+                    <span style={{ color: '#9ca3af', marginLeft: '20px' }}>(서명 또는 인)</span>
+                  )}
                 </td>
               </tr>
             </tbody>
