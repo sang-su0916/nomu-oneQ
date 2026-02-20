@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import LicenseCodeInput from '@/components/LicenseCodeInput';
 
 const plans = [
   {
@@ -151,6 +152,11 @@ export default function PricingPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* 인증코드 입력 섹션 */}
+      <div className="mt-12 max-w-2xl mx-auto">
+        <LicenseCodeInput />
       </div>
 
       <div className="mt-12 text-center">

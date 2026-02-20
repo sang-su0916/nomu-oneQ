@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { PLAN_LIMITS } from '@/types/database';
 import type { DbEmployee } from '@/types/database';
+import PlanBanner from '@/components/PlanBanner';
+import { usePlanGate } from '@/hooks/usePlanGate';
 
 interface DashboardStats {
   totalEmployees: number;
@@ -18,6 +20,7 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const { user, company, membership, loading } = useAuth();
+  const planGate = usePlanGate();
   const [stats, setStats] = useState<DashboardStats>({
     totalEmployees: 0, activeEmployees: 0, resignedEmployees: 0,
     contractsExpiringSoon: 0, documentsCount: 0,
@@ -72,6 +75,9 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* 플랜 만료/경고 배너 */}
+      <PlanBanner />
+
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -79,12 +85,22 @@ export default function DashboardPage() {
           <p className="text-[var(--text-muted)] text-sm mt-1">
             {membership?.role === 'admin' ? '관리자' : membership?.role === 'manager' ? '담당자' : '열람자'}
             {' · '}
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {company.plan === 'free' ? '무료' : company.plan === 'starter' ? '스타터' : company.plan === 'business' ? '비즈니스' : '프로'} 플랜
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+              planGate.isExpired ? 'bg-red-100 text-red-800' :
+              planGate.isExpiringSoon ? 'bg-yellow-100 text-yellow-800' :
+              'bg-blue-100 text-blue-800'
+            }`}>
+              {planGate.planLabel} 플랜
+              {planGate.isExpired && ' (만료됨)'}
             </span>
+            {planGate.daysRemaining !== null && !planGate.isExpired && (
+              <span className="text-xs text-[var(--text-muted)] ml-2">
+                (남은 기간: {planGate.daysRemaining}일)
+              </span>
+            )}
           </p>
         </div>
-        {company.plan === 'free' && (
+        {(company.plan === 'free' || planGate.isExpired) && (
           <Link
             href="/pricing"
             className="px-4 py-2 bg-gradient-to-r from-[var(--primary)] to-blue-600 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
