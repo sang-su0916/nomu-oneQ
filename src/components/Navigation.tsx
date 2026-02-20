@@ -68,6 +68,7 @@ const menuItems = [
   { href: '/wage-ledger', label: '임금대장', icon: '📊' },
   { href: '/work-rules', label: '취업규칙', icon: '📖' },
   { href: '/archive', label: '보관함', icon: '🗄️' },
+  { href: '/notifications', label: '알림', icon: '🔔' },
 ];
 
 export default function Navigation() {

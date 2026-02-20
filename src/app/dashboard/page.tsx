@@ -7,7 +7,9 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { PLAN_LIMITS } from '@/types/database';
 import type { DbEmployee } from '@/types/database';
+import { checkContractExpiry } from '@/lib/notification-checker';
 import PlanBanner from '@/components/PlanBanner';
+import NotificationWidget from '@/components/NotificationWidget';
 import { usePlanGate } from '@/hooks/usePlanGate';
 
 interface DashboardStats {
@@ -56,11 +58,14 @@ export default function DashboardPage() {
       .select('id', { count: 'exact', head: true })
       .eq('company_id', company.id);
 
+    // 계약 만료 임박 체크
+    const expiringContracts = checkContractExpiry(emps as DbEmployee[]);
+
     setStats({
       totalEmployees: emps.length,
       activeEmployees: active.length,
       resignedEmployees: resigned.length,
-      contractsExpiringSoon: 0, // TODO: 계약 만료 임박 체크
+      contractsExpiringSoon: expiringContracts.length,
       documentsCount: docsCount || 0,
     });
 
@@ -117,6 +122,9 @@ export default function DashboardPage() {
         <StatCard icon="📋" label="보관 서류" value={stats.documentsCount} />
         <StatCard icon="⚠️" label="계약만료 임박" value={stats.contractsExpiringSoon} accent />
       </div>
+
+      {/* 알림 위젯 (유료 플랜) */}
+      {planGate.isPaid && <NotificationWidget />}
 
       {/* 직원 한도 바 */}
       {company.plan === 'free' && (
