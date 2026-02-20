@@ -95,7 +95,7 @@ export default function PricingPage() {
         <p className="text-[var(--text-muted)]">사업장 규모에 맞는 플랜을 선택하세요</p>
       </div>
 
-      <div className="grid md:grid-cols-4 gap-6">
+      <div className="pricing-scroll md:grid md:grid-cols-4 gap-6">
         {plans.map(plan => {
           const isCurrent = company?.plan === plan.id;
 

@@ -703,3 +703,220 @@ body {
 .brand-strip:hover {
   box-shadow: 0 4px 16px rgba(139, 105, 20, 0.1);
 }
+
+/* ========================================
+   MOBILE UX OPTIMIZATIONS
+   ======================================== */
+
+/* Touch targets — min 44px */
+.touch-target {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+/* Mobile Tab Bar */
+.mobile-tab-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  z-index: 50;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 8px 4px;
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 52px;
+}
+
+.mobile-tab-active {
+  color: var(--primary);
+}
+
+/* Success animations */
+@keyframes successPop {
+  0% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes successCheck {
+  0% { stroke-dashoffset: 30; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-success-pop {
+  animation: successPop 0.3s ease-out;
+}
+
+.animate-success-check {
+  stroke-dasharray: 30;
+  animation: successCheck 0.4s ease-out 0.2s forwards;
+  stroke-dashoffset: 30;
+}
+
+/* Swipeable cards */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-in {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* ========================================
+   RESPONSIVE: MOBILE (< 768px)
+   ======================================== */
+@media (max-width: 767px) {
+  /* Show mobile tab bar */
+  .mobile-tab-bar {
+    display: flex;
+  }
+
+  /* Touch optimized buttons */
+  .btn {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+  }
+
+  .btn-sm {
+    min-height: 40px;
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Form inputs taller on mobile */
+  .input-field,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="tel"],
+  textarea,
+  select {
+    min-height: 48px;
+    font-size: 16px; /* prevents iOS zoom */
+  }
+
+  /* Card spacing for touch */
+  .feature-card,
+  .stat-card {
+    padding: 1rem;
+  }
+
+  /* Table → card view on mobile */
+  .table-container {
+    overflow: visible;
+  }
+
+  .table-modern thead {
+    display: none;
+  }
+
+  .table-modern tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .table-modern tbody tr {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+  }
+
+  .table-modern tbody tr:hover {
+    background: var(--bg-card);
+  }
+
+  .table-modern td {
+    padding: 0.25rem 0;
+    border-bottom: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .table-modern td::before {
+    content: attr(data-label);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  /* Form sections single column */
+  .form-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Dashboard stat cards stack */
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Pricing cards swipeable */
+  .pricing-scroll {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .pricing-scroll > * {
+    min-width: 280px;
+    scroll-snap-align: center;
+    flex-shrink: 0;
+  }
+
+  /* Archive card better spacing */
+  .space-y-3 > * + * {
+    margin-top: 0.75rem;
+  }
+
+  /* Navigation adjustments */
+  .nav-container {
+    position: sticky;
+    top: 0;
+  }
+
+  /* Form section padding */
+  .form-section {
+    padding: 1rem;
+  }
+
+  /* Empty state compact */
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+}
+
+/* Safe area padding for PWA */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .mobile-tab-bar {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  main {
+    padding-bottom: calc(68px + env(safe-area-inset-bottom));
+  }
+}

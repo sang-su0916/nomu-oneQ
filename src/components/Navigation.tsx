@@ -80,7 +80,7 @@ export default function Navigation() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCompanySelect, setShowCompanySelect] = useState(false);
 
-  // 로그인/회원가입 페이지에서는 네비 숨김
+  // 로그인/회원가입 페이지, 랜딩 페이지에서는 네비 숨김
   if (['/login', '/signup', '/onboarding'].includes(pathname)) return null;
 
   const isActive = (href: string) => {

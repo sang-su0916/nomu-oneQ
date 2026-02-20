@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import { DOC_TYPE_LABELS } from '@/hooks/useDocumentSave';
 import { formatDateShort } from '@/lib/storage';
 import SignedBadge from '@/components/SignedBadge';
+import SwipeableItem from '@/components/SwipeableItem';
+import PullToRefresh from '@/components/PullToRefresh';
 import Link from 'next/link';
 
 interface ArchivedDoc {
@@ -89,7 +91,12 @@ export default function ArchivePage() {
     );
   }
 
+  const handleRefresh = async () => {
+    await loadDocs();
+  };
+
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="max-w-6xl mx-auto px-4 py-8 animate-fade-in">
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -154,73 +161,82 @@ export default function ArchivePage() {
       ) : (
         <div className="space-y-3">
           {filteredDocs.map(doc => (
-            <div
+            <SwipeableItem
               key={doc.id}
-              className="flex items-center justify-between p-4 bg-[var(--bg-card)] rounded-xl border border-[var(--border)] hover:border-[var(--primary)] transition-colors"
+              onDelete={() => {
+                if (doc.signed) return;
+                setDeleteConfirm(doc.id);
+              }}
+              disabled={doc.signed}
             >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-[rgba(30,58,95,0.08)] flex items-center justify-center text-lg">
-                  {getDocIcon(doc.doc_type)}
+              <div
+                className="flex items-center justify-between p-4 bg-[var(--bg-card)] rounded-xl border border-[var(--border)] hover:border-[var(--primary)] transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-[rgba(30,58,95,0.08)] flex items-center justify-center text-lg">
+                    {getDocIcon(doc.doc_type)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-[var(--text)]">
+                        {doc.signed && <span className="mr-1">🔒</span>}
+                        {doc.title}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-[rgba(30,58,95,0.08)] text-[var(--primary)] font-medium">
+                        {DOC_TYPE_LABELS[doc.doc_type] || doc.doc_type}
+                      </span>
+                      <span className="text-xs text-[var(--text-muted)]">
+                        {formatDateShort(doc.created_at.split('T')[0])}
+                      </span>
+                      {doc.signed && doc.signed_at && (
+                        <SignedBadge
+                          signedAt={doc.signed_at}
+                          signatureUrl={doc.signature_url}
+                          compact
+                        />
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-[var(--text)]">
-                      {doc.signed && <span className="mr-1">🔒</span>}
-                      {doc.title}
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-[rgba(30,58,95,0.08)] text-[var(--primary)] font-medium">
-                      {DOC_TYPE_LABELS[doc.doc_type] || doc.doc_type}
-                    </span>
-                    <span className="text-xs text-[var(--text-muted)]">
-                      {formatDateShort(doc.created_at.split('T')[0])}
-                    </span>
-                    {doc.signed && doc.signed_at && (
-                      <SignedBadge
-                        signedAt={doc.signed_at}
-                        signatureUrl={doc.signature_url}
-                        compact
-                      />
-                    )}
-                  </div>
+                <div className="flex items-center gap-2">
+                  {doc.signed && doc.signed_at && (
+                    <SignedBadge signedAt={doc.signed_at} signatureUrl={doc.signature_url} />
+                  )}
+                  {deleteConfirm === doc.id ? (
+                    <>
+                      <button
+                        onClick={() => handleDelete(doc.id)}
+                        className="px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 touch-target"
+                      >
+                        확인
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(null)}
+                        className="px-3 py-1.5 text-xs border border-[var(--border)] rounded-lg hover:bg-[var(--bg)] touch-target"
+                      >
+                        취소
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setDeleteConfirm(doc.id)}
+                      disabled={doc.signed}
+                      className="hidden md:inline-flex px-3 py-1.5 text-xs text-red-500 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={doc.signed ? '서명된 서류는 삭제할 수 없습니다' : ''}
+                    >
+                      삭제
+                    </button>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {doc.signed && doc.signed_at && (
-                  <SignedBadge signedAt={doc.signed_at} signatureUrl={doc.signature_url} />
-                )}
-                {deleteConfirm === doc.id ? (
-                  <>
-                    <button
-                      onClick={() => handleDelete(doc.id)}
-                      className="px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600"
-                    >
-                      확인
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(null)}
-                      className="px-3 py-1.5 text-xs border border-[var(--border)] rounded-lg hover:bg-[var(--bg)]"
-                    >
-                      취소
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => setDeleteConfirm(doc.id)}
-                    disabled={doc.signed}
-                    className="px-3 py-1.5 text-xs text-red-500 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                    title={doc.signed ? '서명된 서류는 삭제할 수 없습니다' : ''}
-                  >
-                    삭제
-                  </button>
-                )}
-              </div>
-            </div>
+            </SwipeableItem>
           ))}
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 }
 

@@ -1,7 +1,17 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
+import MobileTabBar from "@/components/MobileTabBar";
+import FAB from "@/components/FAB";
 import { AuthProvider } from "@/contexts/AuthContext";
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#1e3a5f',
+};
 
 export const metadata: Metadata = {
   title: {
@@ -13,6 +23,15 @@ export const metadata: Metadata = {
   authors: [{ name: "엘비즈파트너스", url: "https://lbiz-partners.com" }],
   creator: "엘비즈파트너스",
   publisher: "엘비즈파트너스",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "노무원큐",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   openGraph: {
     type: "website",
     locale: "ko_KR",
@@ -65,6 +84,10 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="노무원큐" />
+        <link rel="apple-touch-icon" href="/logo.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -73,9 +96,11 @@ export default function RootLayout({
       <body className="min-h-screen">
         <AuthProvider>
           <Navigation />
-          <main className="pt-14">
+          <main className="pt-14 pb-20 md:pb-0">
             {children}
           </main>
+          <MobileTabBar />
+          <FAB />
         </AuthProvider>
       </body>
     </html>
