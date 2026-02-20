@@ -37,12 +37,20 @@ const PLAN_LABELS: Record<string, string> = {
   pro: '프로',
 };
 
+// 🎉 베타 기간: 2026년 2월 28일까지 전 기능 무료
+const BETA_END_DATE = new Date('2026-03-01T00:00:00+09:00');
+
+function isBetaPeriod(): boolean {
+  return new Date() < BETA_END_DATE;
+}
+
 export function usePlanGate(): PlanGate {
   const { company } = useAuth();
 
   return useMemo(() => {
     const plan = company?.plan || 'free';
     const expiresAt = company?.plan_expires_at || null;
+    const beta = isBetaPeriod();
     
     // 만료일 계산
     let daysRemaining: number | null = null;
@@ -58,16 +66,26 @@ export function usePlanGate(): PlanGate {
       isExpiringSoon = daysRemaining > 0 && daysRemaining <= 7;
     }
 
+    // 🎉 베타 기간: 베타 종료까지 남은 일수 표시
+    if (beta) {
+      const betaDaysLeft = Math.ceil((BETA_END_DATE.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      daysRemaining = betaDaysLeft;
+      isExpired = false;
+      isExpiringSoon = betaDaysLeft <= 3;
+    }
+
     // 플랜 상태 결정
     let planStatus: PlanStatus = 'free';
-    if (plan !== 'free') {
+    if (beta) {
+      planStatus = 'active';
+    } else if (plan !== 'free') {
       if (isExpired) planStatus = 'expired';
       else if (isExpiringSoon) planStatus = 'expiring_soon';
       else planStatus = 'active';
     }
 
-    // 만료된 경우 free 제한 적용
-    const effectivePlan = (plan !== 'free' && isExpired) ? 'free' : plan;
+    // 🎉 베타 기간: pro 플랜 적용 / 만료된 경우 free 제한 적용
+    const effectivePlan = beta ? 'pro' : ((plan !== 'free' && isExpired) ? 'free' : plan);
     const limits = PLAN_LIMITS[effectivePlan];
     const isPaid = effectivePlan !== 'free';
 

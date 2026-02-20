@@ -23,8 +23,8 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[var(--bg)] to-blue-50">
         <div className="max-w-6xl mx-auto px-4 py-20 md:py-32 text-center">
-          <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mb-6">
-            🎉 무료로 시작하세요 · 직원 3명까지 무료
+          <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 text-orange-700 text-sm font-bold mb-6 animate-pulse shadow-md">
+            🎉 2월 베타 오픈 — 전 기능 무료 체험! (~2/28)
           </div>
           <h1 className="text-4xl md:text-6xl font-extrabold text-[var(--text)] leading-tight mb-6">
             사업장 노무관리,<br />
